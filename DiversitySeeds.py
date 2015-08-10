@@ -57,62 +57,61 @@ class SeedFind:
         with open("items.txt", "r") as f:
             self.items_info = json.load(f)
 
-    def getItemList(self, rngSeed):
-        seed(str(rngSeed))
+    def get_item_list(self, rng_seed):
+        seed(str(rng_seed))
         # creates list of 33 unique items from the valid items list
         return sample(self.valid_items, 33)
 
-    def getSeed(self, desiredSeed):
-        chars = [0] * 11
-        itemIDs = self.getItemList(desiredSeed)
+    def get_seed(self, desired_seed):
+        chars = [None] * 11
+        item_ids = self.get_item_list(desired_seed)
         for i in range(0, 11):
-            chars[i] = itemIDs[3 * i:(3 * i) + 3]
+            chars[i] = item_ids[3 * i:(3 * i) + 3]
         return chars
 
     # Redefine me to redirect this output
-    def seedOut(self, number, character, items):
+    def seed_out(self, number, character, items):
         pass
 
-    def findSeeds(self, desiredID, instances=1, offset=0, character=11):
-        for ID in desiredID:
+    def find_seeds(self, desired_items, instances=1, offset=0, character=11):
+        for ID in desired_items:
             if ID not in self.valid_items:
                 print("Error, item(s) not in valid_items list.")
                 self.window.window.destroy()
                 return None
-        nextSeed = offset
-        desiredID = frozenset(desiredID)
-        seedsFound = 0
+        next_seed = offset
+        desired_items = frozenset(desired_items)
+        seeds_found = 0
         result = []
-        chars = [0] * 11
+        chars = [None] * 11
         while True:
-            if nextSeed % 1024:
+            if next_seed % 1024:
                 try:
                     self.window.window.update()
                 except:
                     return
-            itemIDs = self.getItemList(nextSeed)
+            item_ids = self.get_item_list(next_seed)
             if character == 11:
                 for i in range(0, 11):
-                    chars[i] = itemIDs[3 * i:(3 * i) + 3]
+                    chars[i] = item_ids[3 * i:(3 * i) + 3]
             else:
-                chars = [itemIDs[3 * character:(3 * character) + 3]]
+                chars = [item_ids[3 * character:(3 * character) + 3]]
             for i, char in enumerate(chars):
-                if not (desiredID <= set(char)):
+                if not (desired_items <= set(char)):
                     continue
-                result += [nextSeed]
-                seedsFound += 1
-                self.seedOut(nextSeed, i if character == 11 else character, char)
-                if seedsFound >= instances:
+                result += [next_seed]
+                seeds_found += 1
+                self.seed_out(next_seed, i if character == 11 else character, char)
+                if seeds_found >= instances:
                     return result
-            nextSeed += 1
-
-
+            next_seed += 1
 
 
 class SeedsDisplay:
     """
     Class for displaying lists of seeds using character and item images
     """
+
     def __init__(self, parent=None):
         self.row = 0
         self._image_library = {}
@@ -134,9 +133,9 @@ class SeedsDisplay:
         self.canvas.configure(scrollregion=self.canvas.bbox("all"), width=200, height=200)
         self.canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
 
+        # Scrolling code taken from:
+        # http://stackoverflow.com/questions/16188420/python-tkinter-scrollbar-for-frame
         self.imageBox = LabelFrame(self.canvas, background="#191919", foreground="#FF0000", borderwidth=0)
-        self.loadingMsg = Label(self.imageBox, text="Loading..", background="#191919", foreground="#FFFFFF",
-                                font=("Helvetica", 16), borderwidth=0)
         interior_id = self.canvas.create_window(0, 0, window=self.imageBox, anchor=NW)
 
         # track changes to the canvas and frame width and sync them, also updating the scrollbar
@@ -149,6 +148,8 @@ class SeedsDisplay:
                 self.canvas.config(width=self.imageBox.winfo_reqwidth())
 
         self.imageBox.bind('<Configure>', _configure_interior)
+        self.loadingMsg = Label(self.imageBox, text="Loading..", background="#191919", foreground="#FFFFFF",
+                                font=("Helvetica", 16), borderwidth=0)
 
         def _configure_canvas(event):
             if self.imageBox.winfo_reqwidth() != self.imageBox.winfo_width():
@@ -158,8 +159,8 @@ class SeedsDisplay:
         self.canvas.bind('<Configure>', _configure_canvas)
 
     @staticmethod
-    def id_to_image(id):
-        return 'collectibles/collectibles_%s.png' % id.zfill(3)
+    def id_to_image(i):
+        return 'collectibles/collectibles_%s.png' % i.zfill(3)
 
     # image library stuff, from openbookproject.net
     def get_image(self, path):
@@ -170,7 +171,7 @@ class SeedsDisplay:
             self._image_library[path] = image
         return image
 
-    def updateWindow(self):
+    def update_window(self):
         # Make the height as large as it needs to be without resizing it if it's already large enough
         self.loadingMsg.grid(row=self.row, columnspan=5, sticky=EW)
         h = max(min(int(self.window.winfo_vrootheight() * 2 / 3), self.imageBox.winfo_height() + 4),
@@ -178,11 +179,11 @@ class SeedsDisplay:
         self.window.geometry('%dx%d' % (self.imageBox.winfo_width() + self.scrollbar.winfo_width() + 2, h))
         self.window.update()
 
-    def seedFindLabel(self, items):
+    def seed_find_label(self, items):
         x = Label(self.imageBox, text='Desired Items:', foreground="#FFFFFF", background="#191919",
                   font=("Helvetica", 16))
         x.grid(row=self.row, column=0, columnspan=2, padx=0, pady=0, sticky=W)
-        items += [None]*(3-len(items))
+        items += [None] * (3 - len(items))
         for column, item in enumerate(items):
             if item:
                 photo = self.get_image(self.id_to_image(str(item)))
@@ -193,21 +194,21 @@ class SeedsDisplay:
         self.row += 1
         x = LabelFrame(self.imageBox)
         x.grid(row=self.row, columnspan=5, sticky=EW)
-        self.row +=1
-        self.updateWindow()
+        self.row += 1
+        self.update_window()
 
-    def getSeedLabel(self):
+    def get_seed_label(self):
         x = Label(self.imageBox, text='Seed', foreground="#FFFFFF", background="#191919", font=("Helvetica", 16))
         x.grid(row=self.row, column=0, padx=0, pady=0, sticky=W)
         self.row += 1
-        self.updateWindow()
+        self.update_window()
 
     def get_character_image(self, character):
         characters = ["The_Lost", "Eden", "Lazarus", "Azazel", "Samson", "Eve", "Blue_Baby", "Judas", "Cain",
                       "Magdalene", "Isaac"]
         return self.get_image('characters/' + characters[character] + '_App.png')
 
-    def addSeed(self, number, character, items):
+    def add_seed(self, number, character, items):
         try:
             # Use a text widget so the user can select and copy it
             x = Text(self.imageBox, width=len(str(number)), height=1, borderwidth=0, foreground="#FFFFFF",
@@ -223,41 +224,41 @@ class SeedsDisplay:
                 x = Label(self.imageBox, image=photo, background="#191919")
                 x.grid(row=self.row, column=column + 2, padx=0, pady=0, sticky=W)
             self.row += 1
-            self.updateWindow()
+            self.update_window()
         except:
             pass
 
 
-def findSeeds():
-    x = SeedsDisplay(iV)
-    y = SeedFind(x)
-    y.seedOut = x.addSeed
-    mySeed = []
-    character = findCharacter.current()
-    for i in findItem:
+def find_seeds():
+    display = SeedsDisplay(main_window)
+    seed_finder = SeedFind(display)
+    seed_finder.seed_out = display.add_seed  # Redirect the output seeds to our display object as they are found.
+    character = selected_character.current()
+    items_to_find = []
+    for i in desired_items:
         if i.get() != "Any":
-            mySeed += [int(items[i.current()][0])]
-    x.seedFindLabel(mySeed[:])
-    x.updateWindow()
-    y.findSeeds(mySeed, int(numSeeds.get()), int(offset.get()), character)
+            items_to_find += [int(items[i.current()][0])]
+    display.seed_find_label(items_to_find[:])
+    display.update_window()
+    seed_finder.find_seeds(items_to_find, int(numSeeds.get()), int(offset.get()), character)
     try:
-        x.updateWindow()
-        x.loadingMsg.configure(text="Done!")
+        display.update_window()
+        display.loadingMsg.configure(text="Done!")
     except:
         pass
 
 
-def showSeed():
-    x = SeedsDisplay(iV)
-    y = SeedFind(x)
-    t = mySeed.get()
-    theSeed = y.getSeed(t)
-    x.getSeedLabel()
-    for char, items in enumerate(theSeed):
-        x.addSeed(t, char, items)
+def show_seeds():
+    display = SeedsDisplay(main_window)
+    seed_finder = SeedFind(display)
+    the_seed = seed_to_display.get().strip()
+    seed_items = seed_finder.get_seed(the_seed)
+    display.get_seed_label()
+    for char, items in enumerate(seed_items):
+        display.add_seed(the_seed, char, items)
     try:
-        x.updateWindow()
-        x.loadingMsg.configure(text="Done!")
+        display.update_window()
+        display.loadingMsg.configure(text="Done!")
     except:
         pass
 
@@ -269,83 +270,72 @@ if __name__ == "__main__":
     items = [i for i in items if int(i[0]) in valid_items]
     items.sort(key=lambda w: w[1]['name'])
 
-    iV = Tk()
-    iV.wm_title("Diversity Mod Seed Finder")
-
+    main_window = Tk()
+    main_window.wm_title("Diversity Mod Seed Finder")
 
     # **** Seed Finding GUI ****
-    m = LabelFrame(iV, padx=5, pady=5)
-    n = Label(m,
-              text='Choose up to 3 items to search for seeds with characters starting those items.\n\nOffset indicates which seed # to start searching from so you\ncan search for the same items twice without finding repeat seeds',
-              justify=CENTER)
-    n.grid(row=0, column=0, columnspan=3)
-    n = Frame(m)
-    findCharacter = ttk.Combobox(n, state='readonly',
-                                 values=["The Lost", "Eden", "Lazarus", "Azazel", "Samson", "Eve", "Blue Baby", "Judas",
-                                         "Cain", "Magdalene", "Isaac", "Any Character"])
-    findCharacter.current(11)
-    findCharacter.pack()
-    n.grid(row=1, column=0, columnspan=3)
-    findItem = []
-    n = Frame(m)
-    findItem.append(ttk.Combobox(n, state='readonly', values=[item[1]['name'] for item in items] + ["Any"]))
-    findItem[0].current(len(items))
-    findItem[0].pack()
-    n.grid(row=2, column=0)
-    n = Frame(m)
-    findItem.append(ttk.Combobox(n, state='readonly', values=[item[1]['name'] for item in items] + ["Any"]))
-    findItem[1].current(len(items))
-    findItem[1].pack()
-    n.grid(row=2, column=1)
-    n = Frame(m)
-    findItem.append(ttk.Combobox(n, state='readonly', values=[item[1]['name'] for item in items] + ["Any"]))
-    findItem[2].current(len(items))
-    findItem[2].pack()
-    n.grid(row=2, column=2)
-    m.grid(pady=10, padx=10)
+    widget_holder = LabelFrame(main_window, padx=5, pady=5)
+    widget = Label(widget_holder,
+                   text='Choose up to 3 items to search for seeds with characters starting those items.\n\n\
+                   Offset indicates which seed # to start searching from so you\n\
+                   can search for the same items twice without finding repeat seeds',
+                   justify=CENTER)
+    widget.grid(row=0, column=0, columnspan=3)
+    widget = Frame(widget_holder)
+    selected_character = ttk.Combobox(widget, state='readonly',
+                                      values=["The Lost", "Eden", "Lazarus", "Azazel", "Samson", "Eve", "Blue Baby",
+                                              "Judas",
+                                              "Cain", "Magdalene", "Isaac", "Any Character"])
+    selected_character.current(11)
+    selected_character.pack()
+    widget.grid(row=1, column=0, columnspan=3)
+    desired_items = [None] * 3
+    for index in range(0, len(desired_items)):
+        widget = Frame(widget_holder)
+        desired_items[index] = ttk.Combobox(widget, state='readonly',
+                                            values=[item[1]['name'] for item in items] + ["Any"])
+        desired_items[index].current(len(items))
+        desired_items[index].pack()
+        widget.grid(row=2, column=index)
+    widget_holder.grid(pady=10, padx=10)
 
-    # Number of seeds label/entry
-    n = Label(m, text="# of seeds to find:")
-    n.grid(row=3, column=0, sticky=W)
+    # Number of seeds label/entry/button
+    widget = Label(widget_holder, text="# of seeds to find:")
+    widget.grid(row=3, column=0, sticky=W)
 
     numSeeds = StringVar()
-    numberOfSeeds = Entry(m, width=4, textvariable=numSeeds)
-    numberOfSeeds.insert(END, "10")
+    widget = Entry(widget_holder, width=4, textvariable=numSeeds)
+    widget.insert(END, "10")
+    widget.bind("<Return>", lambda event: find_seeds())
+    widget.grid(row=3, column=0, sticky=E)
 
-    def findSeeds_key(event):
-        findSeeds()
-
-    numberOfSeeds.bind("<Return>", findSeeds_key)
-    numberOfSeeds.grid(row=3, column=0, sticky=E)
-
-
-    # Seed offset label/entry
-    n = Label(m, text="Offset:")
-    n.grid(row=3, column=1, sticky=W)
+    # Seed offset label/entry/button
+    widget = Label(widget_holder, text="Offset:")
+    widget.grid(row=3, column=1, sticky=W)
 
     offset = StringVar()
-    n = Entry(m, width=12, textvariable=offset)
-    n.insert(END, "0")
-    n.bind("<Return>", findSeeds_key)
-    n.grid(row=3, column=1, sticky=E)
+    widget = Entry(widget_holder, width=12, textvariable=offset)
+    widget.insert(END, "0")
+    widget.bind("<Return>", lambda event: find_seeds())
+    widget.grid(row=3, column=1, sticky=E)
 
-    n = Button(m, text="Find Seeds", command=findSeeds)
-    n.grid(row=3, column=2)
+    widget = Button(widget_holder, text="Find Seeds", command=find_seeds)
+    widget.grid(row=3, column=2)
 
-    # **** Seed Listing GUI ****
-    m = LabelFrame(iV, padx=5, pady=5)
-    n = Label(m, justify=CENTER, text='Input a seed to display the characters and their respective items.')
-    n.pack()
-    mySeed = StringVar()
-    seedText = Entry(m, justify=CENTER, font="font 32 bold", width=15, textvariable=mySeed)
+    # **** Seed Displaying GUI ****
+    widget_holder = LabelFrame(main_window, padx=5, pady=5)
+    widget = Label(widget_holder, justify=CENTER,
+                   text='Input a seed to display the characters and their respective items.\n\
+                   Trailing spaces are ignored.')
+    widget.pack()
 
-    def seedText_key(event):
-        showSeed()
+    seed_to_display = StringVar()
+    widget = Entry(widget_holder, justify=CENTER, font="font 32 bold", width=15, textvariable=seed_to_display)
+    widget.bind("<Return>", lambda event: show_seeds())
+    widget.pack()
 
-    seedText.bind("<Return>", seedText_key)
-    seedText.pack()
-    n = Button(m, text="Show Seed", command=showSeed)
-    n.pack()
-    m.grid(pady=10)
+    widget = Button(widget_holder, text="Show Seed", command=show_seeds)
+    widget.pack()
+    widget_holder.grid(pady=10)
 
     mainloop()
