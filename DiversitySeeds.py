@@ -3,8 +3,12 @@ __author__ = 'Inschato'
 Some Code borrowed from the Rebirth Item Tracker:
 https://github.com/Hyphen-ated/RebirthItemTracker/
 
-Copyright (c) 2015, Brett824 and Hyphen-ated
+Borrowed code copyright (c) 2015, Brett824 and Hyphen-ated
 All rights reserved.
+
+New code copyright (c) 2015, Inschato
+
+Images copyright (c) 2014, Nicalis, Inc.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -32,6 +36,7 @@ from PIL import Image, ImageTk
 import ttk
 from random import sample, seed
 
+debug_character = None # Use this to print out the items of a specific character to the console, Isaac = 0, Lost = 10
 valid_items = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 17, 18, 19, 20, 21, 27, 28, 32, 46, 48, 50, 51, 52, 53,
                54, 55, 57, 60, 62, 63, 64, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 79, 80, 81, 82, 87, 88, 89, 90, 91,
                94, 95, 96, 98, 99, 100, 101, 103, 104, 106, 108, 109, 110, 112, 113, 114, 115, 116, 117, 118, 120, 121,
@@ -54,13 +59,14 @@ class SeedFind:
     def __init__(self, window):
         self.valid_items = valid_items
         self.window = window
+        self.last_seed = 0
         with open("items.txt", "r") as f:
             self.items_info = json.load(f)
 
     def get_item_list(self, rng_seed):
         seed(str(rng_seed))
         # creates list of 33 unique items from the valid items list
-        return sample(self.valid_items, 33)
+        return sample(self.valid_items, 33)[::-1]
 
     def get_seed(self, desired_seed):
         chars = [None] * 11
@@ -79,30 +85,37 @@ class SeedFind:
                 print("Error, item(s) not in valid_items list.")
                 self.window.window.destroy()
                 return None
+        if instances == 0:
+            return None
         next_seed = offset
         desired_items = frozenset(desired_items)
         seeds_found = 0
         result = []
         chars = [None] * 11
+        # This loop should be as efficient as possible
         while True:
-            if next_seed % 1024:
+            # periodically refresh the window
+            if not(next_seed % 2048):
                 try:
-                    self.window.window.update()
+                    self.window.update_window()
                 except:
-                    return
+                    return None
+
             item_ids = self.get_item_list(next_seed)
-            if character == 11:
-                for i in range(0, 11):
-                    chars[i] = item_ids[3 * i:(3 * i) + 3]
-            else:
+            if character == 11: # Get all the characters
+                for current_character in range(0, 11):
+                    chars[current_character] = item_ids[3 * current_character:(3 * current_character) + 3]
+            else: # If asked for a specific character, only extract that one.
                 chars = [item_ids[3 * character:(3 * character) + 3]]
-            for i, char in enumerate(chars):
-                if not (desired_items <= set(char)):
+
+            for current_character, item_set in enumerate(chars):
+                if not (desired_items <= frozenset(item_set)):
                     continue
-                result += [next_seed]
+                result.append(next_seed)
                 seeds_found += 1
-                self.seed_out(next_seed, i if character == 11 else character, char)
-                if seeds_found >= instances:
+                if not self.seed_out(next_seed, current_character if character == 11 else character, item_set) or\
+                    seeds_found >= instances:
+                    self.last_seed = next_seed
                     return result
             next_seed += 1
 
@@ -174,59 +187,74 @@ class SeedsDisplay:
     def update_window(self):
         # Make the height as large as it needs to be without resizing it if it's already large enough
         self.loadingMsg.grid(row=self.row, columnspan=5, sticky=EW)
-        h = max(min(int(self.window.winfo_vrootheight() * 2 / 3), self.imageBox.winfo_height() + 4),
+        self.window.update() # First, update the loading message size and new item (if applicable)
+        height = max(min(int(self.window.winfo_vrootheight() * 2 / 3), self.imageBox.winfo_height() + 4),
                 self.window.winfo_height())
-        self.window.geometry('%dx%d' % (self.imageBox.winfo_width() + self.scrollbar.winfo_width() + 2, h))
-        self.window.update()
+        width = self.imageBox.winfo_width() + self.scrollbar.winfo_width() + 2
+        self.window.geometry('%dx%d' % (width, height))
+        self.window.update() # Then update with the newly calculated height
 
     def seed_find_label(self, items):
-        x = Label(self.imageBox, text='Desired Items:', foreground="#FFFFFF", background="#191919",
+        widget = Label(self.imageBox, text='Desired Items:', foreground="#FFFFFF", background="#191919",
                   font=("Helvetica", 16))
-        x.grid(row=self.row, column=0, columnspan=2, padx=0, pady=0, sticky=W)
+        widget.grid(row=self.row, column=0, columnspan=2, padx=0, pady=0, sticky=W)
         items += [None] * (3 - len(items))
         for column, item in enumerate(items):
             if item:
                 photo = self.get_image(self.id_to_image(str(item)))
             else:
                 photo = self.get_image('collectibles/questionmark.png')
-            x = Label(self.imageBox, image=photo, background="#191919")
-            x.grid(row=self.row, column=column + 2, padx=0, pady=0, sticky=W)
+            widget = Label(self.imageBox, image=photo, background="#191919")
+            widget.grid(row=self.row, column=column + 2, padx=0, pady=0, sticky=W)
         self.row += 1
-        x = LabelFrame(self.imageBox)
-        x.grid(row=self.row, columnspan=5, sticky=EW)
+        widget = LabelFrame(self.imageBox)
+        widget.grid(row=self.row, columnspan=5, sticky=EW)
         self.row += 1
         self.update_window()
 
     def get_seed_label(self):
-        x = Label(self.imageBox, text='Seed', foreground="#FFFFFF", background="#191919", font=("Helvetica", 16))
-        x.grid(row=self.row, column=0, padx=0, pady=0, sticky=W)
+        widget = Label(self.imageBox, text='Seed', foreground="#FFFFFF", background="#191919", font=("Helvetica", 16))
+        widget.grid(row=self.row, column=0, padx=0, pady=0, sticky=W)
         self.row += 1
         self.update_window()
 
     def get_character_image(self, character):
-        characters = ["The_Lost", "Eden", "Lazarus", "Azazel", "Samson", "Eve", "Blue_Baby", "Judas", "Cain",
-                      "Magdalene", "Isaac"]
+        characters = ["Isaac", "Magdalene", "Cain", "Judas", "Blue_Baby", "Eve", "Samson", "Azazel", "Lazarus",
+                      "Eden", "The_Lost"]
         return self.get_image('characters/' + characters[character] + '_App.png')
 
     def add_seed(self, number, character, items):
         try:
             # Use a text widget so the user can select and copy it
-            x = Text(self.imageBox, width=len(str(number)), height=1, borderwidth=0, foreground="#FFFFFF",
+            widget = Text(self.imageBox, width=len(str(number)), height=1, borderwidth=0, foreground="#FFFFFF",
                      background="#191919", font=("Helvetica", 16))
-            x.insert(1.0, str(number))
-            x.grid(row=self.row, column=0, padx=0, pady=0, sticky=W)
-            x.configure(state="disabled")
+            widget.insert(1.0, str(number))
+            widget.grid(row=self.row, column=0, padx=0, pady=0, sticky=W)
+            widget.configure(state="disabled")
             photo = self.get_character_image(character)
-            x = Label(self.imageBox, image=photo, foreground="#FFFFFF", background="#191919", font=("Helvetica", 16))
-            x.grid(row=self.row, column=1, padx=0, pady=0, sticky=W)
+            widget = Label(self.imageBox, image=photo, foreground="#FFFFFF", background="#191919", font=("Helvetica", 16))
+            widget.grid(row=self.row, column=1, padx=0, pady=0, sticky=W)
+            if character==debug_character:
+                char_dump = ""
+                for item in items:
+                    i = items_info.get(str(item).zfill(3))
+                    if i: char_dump += i.get('name') + ", "
+                print char_dump[:-2]
             for column, item in enumerate(items):
                 photo = self.get_image(self.id_to_image(str(item)))
-                x = Label(self.imageBox, image=photo, background="#191919")
-                x.grid(row=self.row, column=column + 2, padx=0, pady=0, sticky=W)
+                widget = Label(self.imageBox, image=photo, background="#191919")
+                widget.grid(row=self.row, column=column + 2, padx=0, pady=0, sticky=W)
             self.row += 1
             self.update_window()
-        except:
-            pass
+        except Exception as e:
+            if str(e).startswith('bad window path name'):
+                return False
+            else:
+                import traceback
+                traceback.print_exc()
+        return True
+
+
 
 
 def find_seeds():
@@ -240,10 +268,28 @@ def find_seeds():
             items_to_find += [int(items[i.current()][0])]
     display.seed_find_label(items_to_find[:])
     display.update_window()
-    seed_finder.find_seeds(items_to_find, int(numSeeds.get()), int(offset.get()), character)
     try:
+        number_of_seeds = int(numSeeds.get())
+    except ValueError:
+        number_of_seeds = 10
+        numSeeds.set('10')
+    try:
+        seed_offset = int(offset.get())
+    except ValueError:
+        seed_offset = 0
+        offset.set('0')
+    seed_finder.find_seeds(items_to_find, number_of_seeds, seed_offset, character)
+    try:
+        def append_seed():
+            display.loadingMsg.configure(state='disabled')
+            display.loadingMsg.configure(text='Loading...')
+            seed_finder.find_seeds(items_to_find, 1, seed_finder.last_seed+1, character)
+            display.loadingMsg.configure(state='normal')
+            display.loadingMsg.configure(text='Next Seed')
+        display.loadingMsg.destroy()
+        display.loadingMsg = Button(display.imageBox, text="Next Seed", command=append_seed)
         display.update_window()
-        display.loadingMsg.configure(text="Done!")
+
     except:
         pass
 
@@ -283,9 +329,8 @@ if __name__ == "__main__":
     widget.grid(row=0, column=0, columnspan=3)
     widget = Frame(widget_holder)
     selected_character = ttk.Combobox(widget, state='readonly',
-                                      values=["The Lost", "Eden", "Lazarus", "Azazel", "Samson", "Eve", "Blue Baby",
-                                              "Judas",
-                                              "Cain", "Magdalene", "Isaac", "Any Character"])
+                                      values=["Isaac", "Magdalene", "Cain", "Judas", "Blue_Baby", "Eve", "Samson",
+                                              "Azazel", "Lazarus", "Eden", "The Lost", "Any Character"])
     selected_character.current(11)
     selected_character.pack()
     widget.grid(row=1, column=0, columnspan=3)
