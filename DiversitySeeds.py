@@ -36,6 +36,7 @@ from PIL import Image, ImageTk
 import ttk
 import tkMessageBox
 from random import sample, seed
+from math import sqrt
 
 debug = False
 debug_character = None # Use this to print out the items of a specific character to the console, Isaac = 0, Lost = 10
@@ -269,8 +270,8 @@ class SeedsDisplay:
                 show_items(None, self.row)
             else:
                 widget = Label(self.imageBox, text="Show Items", foreground="#FFFFFF", background="#191919", font=("Helvetica", 14))
-                widget.slaves = self.row # This is painfully hacky and there's probably a much better way to do this
-                widget.bind("<Button-1>", lambda event: show_items(event, widget.slaves))
+                widget.row = self.row
+                widget.bind("<Button-1>", lambda event: show_items(event, widget.row))
                 widget.grid(row=self.row, column=2, columnspan=3, sticky=EW)
             self.row += 1
             self.update_window()
@@ -350,6 +351,57 @@ def toggle_show_items():
     global show_items
     show_items = not show_items
 
+def filter_editor(parent):
+    _image_library = {}
+    def id_to_image(i):
+        return 'collectibles/collectibles_%s.png' % i.zfill(3)
+
+    # image library stuff, from openbookproject.net
+    def get_image(path):
+        image = _image_library.get(path)
+        if image is None:
+            canonicalized_path = path.replace('/', os.sep).replace('\\', os.sep)
+            image = ImageTk.PhotoImage(Image.open(canonicalized_path))
+            _image_library[path] = image
+        return image
+
+    def filter_toggle(event):
+        item = event.widget.item
+        if item in filter_items:
+            filter_items.remove(item)
+            event.widget.configure(background="#191919")
+        else:
+            filter_items.append(item)
+            event.widget.configure(background="#FF0000")
+
+    def filter_window_closed():
+        global filter_window
+        filter_window.destroy()
+        filter_window = None
+
+    global filter_window
+    if not filter_window:
+        filter_window = Toplevel(parent)
+        filter_window.configure()
+        filter_window.configure(background="#191919")
+        filter_window.title("Filtered Items")
+        filter_window.resizable(0, 0)
+        filter_window.protocol("WM_DELETE_WINDOW", filter_window_closed)
+        widget = Label(filter_window, text="Click an item to add/remove it from the filter\n"+\
+                                           "Items in the filter will not appear in found seeds",
+                                           background="#191919", foreground="#FFFFFF")
+        widget.pack()
+
+        width = int(sqrt(len(items)))
+        widget_holder = Frame(filter_window, background="#191919")
+        for index, item in enumerate(items):
+            widget = Label(widget_holder,  background=("#FF0000" if (int(item[0]) in filter_items) else "#191919"))
+            widget.item = int(item[0])
+            widget.img = get_image(id_to_image(str(item[0])))
+            widget.configure(image=widget.img)
+            widget.bind("<Button-1>", filter_toggle)
+            widget.grid(row=index/width, column=index%width, padx=0, pady=0, sticky=W)
+        widget_holder.pack()
 
 
 if __name__ == "__main__":
@@ -358,6 +410,7 @@ if __name__ == "__main__":
     items = items_info.items()
     items = [i for i in items if int(i[0]) in valid_items]
     items.sort(key=lambda w: w[1]['name'])
+    filter_window = None
 
     main_window = Tk()
     main_window.wm_title("Diversity Mod Seed Finder")
@@ -431,5 +484,6 @@ if __name__ == "__main__":
     filemenu = Menu(menu, tearoff=0)
     main_window.config(menu=menu)
     filemenu.add_checkbutton(label="Hide Items", command=toggle_show_items)
+    filemenu.add_command(label="Edit Filter...", command=lambda : filter_editor(main_window))
     menu.add_cascade(label="View", menu=filemenu)
     mainloop()
