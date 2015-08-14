@@ -34,9 +34,13 @@ import json
 from Tkinter import *
 from PIL import Image, ImageTk
 import ttk
+import tkMessageBox
 from random import sample, seed
 
+debug = False
 debug_character = None # Use this to print out the items of a specific character to the console, Isaac = 0, Lost = 10
+show_items = True
+filter_items = [] # Filter list of items the seed shouldn't contain, currently only editable here
 valid_items = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 17, 18, 19, 20, 21, 27, 28, 32, 46, 48, 50, 51, 52, 53,
                54, 55, 57, 60, 62, 63, 64, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 79, 80, 81, 82, 87, 88, 89, 90, 91,
                94, 95, 96, 98, 99, 100, 101, 103, 104, 106, 108, 109, 110, 112, 113, 114, 115, 116, 117, 118, 120, 121,
@@ -80,15 +84,19 @@ class SeedFind:
         pass
 
     def find_seeds(self, desired_items, instances=1, offset=0, character=11):
+        desired_items = frozenset(desired_items)
+        fi = frozenset(filter_items)
         for ID in desired_items:
             if ID not in self.valid_items:
                 print("Error, item(s) not in valid_items list.")
                 self.window.window.destroy()
                 return None
+        if len(desired_items) > 0 and desired_items.issubset(fi):
+            tkMessageBox.showinfo("Sorry", "Error, all item(s) in filter list.")
+            return None
         if instances == 0:
             return None
         next_seed = offset
-        desired_items = frozenset(desired_items)
         seeds_found = 0
         result = []
         chars = [None] * 11
@@ -99,6 +107,9 @@ class SeedFind:
                 try:
                     self.window.update_window()
                 except:
+                    if debug==True:
+                        import traceback
+                        traceback.print_exc()
                     return None
 
             item_ids = self.get_item_list(next_seed)
@@ -109,7 +120,8 @@ class SeedFind:
                 chars = [item_ids[3 * character:(3 * character) + 3]]
 
             for current_character, item_set in enumerate(chars):
-                if not (desired_items <= frozenset(item_set)):
+                current_item_set = frozenset(item_set)
+                if not (desired_items <= current_item_set) or not fi.isdisjoint(current_item_set):
                     continue
                 result.append(next_seed)
                 seeds_found += 1
@@ -125,8 +137,10 @@ class SeedsDisplay:
     Class for displaying lists of seeds using character and item images
     """
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, show_items=True):
         self.row = 0
+        self.show_items=show_items
+        self.rows = [] # for show_items
         self._image_library = {}
         with open("items.txt", "r") as f:
             self.items_info = json.load(f)
@@ -137,6 +151,10 @@ class SeedsDisplay:
         self.window.configure(background="#191919")
         self.window.title("Seed Viewer")
         self.window.resizable(0, 1)
+        self.window.bind("<Home>", lambda event: self.canvas.yview_moveto(0))
+        self.window.bind("<End>", lambda event: self.canvas.yview_moveto(1))
+        self.window.bind("<Prior>", lambda event: self.canvas.yview_scroll(-1,'pages'))
+        self.window.bind("<Next>", lambda event: self.canvas.yview_scroll(1,'pages'))
 
         # Initialize the scrolling canvas
         self.canvas = Canvas(self.window, background="#191919", borderwidth=0)
@@ -240,10 +258,20 @@ class SeedsDisplay:
                     i = items_info.get(str(item).zfill(3))
                     if i: char_dump += i.get('name') + ", "
                 print char_dump[:-2]
-            for column, item in enumerate(items):
-                photo = self.get_image(self.id_to_image(str(item)))
-                widget = Label(self.imageBox, image=photo, background="#191919")
-                widget.grid(row=self.row, column=column + 2, padx=0, pady=0, sticky=W)
+            def show_items(event, row):
+                if event:
+                    event.widget.destroy() # Remove the "Show Items" text
+                for column, item in enumerate(items):
+                    photo = self.get_image(self.id_to_image(str(item)))
+                    widget = Label(self.imageBox, image=photo, background="#191919")
+                    widget.grid(row=row, column=column + 2, padx=0, pady=0, sticky=W)
+            if self.show_items == True:
+                show_items(None, self.row)
+            else:
+                widget = Label(self.imageBox, text="Show Items", foreground="#FFFFFF", background="#191919", font=("Helvetica", 14))
+                widget.slaves = self.row # This is painfully hacky and there's probably a much better way to do this
+                widget.bind("<Button-1>", lambda event: show_items(event, widget.slaves))
+                widget.grid(row=self.row, column=2, columnspan=3, sticky=EW)
             self.row += 1
             self.update_window()
         except Exception as e:
@@ -258,7 +286,7 @@ class SeedsDisplay:
 
 
 def find_seeds():
-    display = SeedsDisplay(main_window)
+    display = SeedsDisplay(main_window, show_items)
     seed_finder = SeedFind(display)
     seed_finder.seed_out = display.add_seed  # Redirect the output seeds to our display object as they are found.
     character = selected_character.current()
@@ -278,24 +306,32 @@ def find_seeds():
     except ValueError:
         seed_offset = 0
         offset.set('0')
-    seed_finder.find_seeds(items_to_find, number_of_seeds, seed_offset, character)
+    if not seed_finder.find_seeds(items_to_find, number_of_seeds, seed_offset, character):
+        display.window.destroy()
+        display = None
+        return
     try:
         def append_seed():
             display.loadingMsg.configure(state='disabled')
             display.loadingMsg.configure(text='Loading...')
             seed_finder.find_seeds(items_to_find, 1, seed_finder.last_seed+1, character)
+            display.canvas.yview_moveto(1)
             display.loadingMsg.configure(state='normal')
             display.loadingMsg.configure(text='Next Seed')
         display.loadingMsg.destroy()
         display.loadingMsg = Button(display.imageBox, text="Next Seed", command=append_seed)
+        normal_state = display.loadingMsg.configure('state')
+        display.window.bind("<Return>", lambda event: append_seed() if display.loadingMsg.configure('state') == normal_state else None)
         display.update_window()
 
     except:
-        pass
+        if debug:
+            import traceback
+            traceback.print_exc()
 
 
 def show_seeds():
-    display = SeedsDisplay(main_window)
+    display = SeedsDisplay(main_window, show_items)
     seed_finder = SeedFind(display)
     the_seed = seed_to_display.get().strip()
     seed_items = seed_finder.get_seed(the_seed)
@@ -306,7 +342,14 @@ def show_seeds():
         display.update_window()
         display.loadingMsg.configure(text="Done!")
     except:
-        pass
+        if debug:
+            import traceback
+            traceback.print_exc()
+
+def toggle_show_items():
+    global show_items
+    show_items = not show_items
+
 
 
 if __name__ == "__main__":
@@ -383,4 +426,10 @@ if __name__ == "__main__":
     widget.pack()
     widget_holder.grid(pady=10)
 
+    # **** Menu Bar ****
+    menu = Menu(main_window)
+    filemenu = Menu(menu, tearoff=0)
+    main_window.config(menu=menu)
+    filemenu.add_checkbutton(label="Hide Items", command=toggle_show_items)
+    menu.add_cascade(label="View", menu=filemenu)
     mainloop()
