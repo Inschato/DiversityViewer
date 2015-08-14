@@ -41,7 +41,7 @@ from math import sqrt
 debug = False
 debug_character = None # Use this to print out the items of a specific character to the console, Isaac = 0, Lost = 10
 show_items = True
-filter_items = [] # Filter list of items the seed shouldn't contain, currently only editable here
+filter_items = [] # Filter list of items the seed shouldn't contain
 valid_items = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 17, 18, 19, 20, 21, 27, 28, 32, 46, 48, 50, 51, 52, 53,
                54, 55, 57, 60, 62, 63, 64, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 79, 80, 81, 82, 87, 88, 89, 90, 91,
                94, 95, 96, 98, 99, 100, 101, 103, 104, 106, 108, 109, 110, 112, 113, 114, 115, 116, 117, 118, 120, 121,
@@ -379,6 +379,18 @@ def filter_editor(parent):
         filter_window.destroy()
         filter_window = None
 
+    def filter_all():
+        global filter_items
+        filter_items = valid_items[:]
+        for widget in items_holder.winfo_children():
+            widget.configure(background="#FF0000")
+
+    def filter_none():
+        global filter_items
+        filter_items = []
+        for widget in items_holder.winfo_children():
+            widget.configure(background="#191919")
+
     global filter_window
     if not filter_window:
         filter_window = Toplevel(parent)
@@ -387,21 +399,26 @@ def filter_editor(parent):
         filter_window.title("Filtered Items")
         filter_window.resizable(0, 0)
         filter_window.protocol("WM_DELETE_WINDOW", filter_window_closed)
-        widget = Label(filter_window, text="Click an item to add/remove it from the filter\n"+\
+        widget_holder = Frame(filter_window, background="#191919")
+        widget = Button(widget_holder, text="All", command=filter_all, padx=5, background="#191919", foreground="#FFFFFF")
+        widget.grid(row=0, column=3, padx=3)
+        widget = Button(widget_holder, text="None", command=filter_none, background="#191919", foreground="#FFFFFF")
+        widget.grid(row=0, column=2, padx=3)
+        widget = Label(widget_holder, text="Click an item to add/remove it from the filter\n"+\
                                            "Items in the filter will not appear in found seeds",
                                            background="#191919", foreground="#FFFFFF")
-        widget.pack()
-
+        widget.grid(row=0, column=0, columnspan=2, padx=3)
+        widget_holder.pack()
         width = int(sqrt(len(items)))
-        widget_holder = Frame(filter_window, background="#191919")
+        items_holder = Frame(filter_window, background="#191919")
         for index, item in enumerate(items):
-            widget = Label(widget_holder,  background=("#FF0000" if (int(item[0]) in filter_items) else "#191919"))
+            widget = Label(items_holder,  background=("#FF0000" if (int(item[0]) in filter_items) else "#191919"))
             widget.item = int(item[0])
             widget.img = get_image(id_to_image(str(item[0])))
             widget.configure(image=widget.img)
             widget.bind("<Button-1>", filter_toggle)
             widget.grid(row=index/width, column=index%width, padx=0, pady=0, sticky=W)
-        widget_holder.pack()
+        items_holder.pack()
 
 
 if __name__ == "__main__":
