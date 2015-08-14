@@ -1,11 +1,12 @@
 Diversity Mod Seed Viewer
 =========================
+Created by Inschato, special thanks to Sillypears and Duneaught.
 
-For use with the Diversity Mod (v0.6-0.7) for The Binding of Issac Rebirth
+
+For use with the Diversity Mod (v0.6-0.7) by Duneaught
 
 Available at: https://github.com/duneaught/diversitymod
 
-Created by Inschato, special thanks to sillypears and duneaught.
 
 Feature List
 ------------
