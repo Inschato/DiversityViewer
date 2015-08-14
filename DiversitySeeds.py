@@ -35,12 +35,13 @@ from Tkinter import *
 from PIL import Image, ImageTk
 import ttk
 import tkMessageBox
-from random import sample, seed
+from random import sample, seed, randint
 from math import sqrt
 
 debug = False
 debug_character = None # Use this to print out the items of a specific character to the console, Isaac = 0, Lost = 10
 show_items = True
+random_offset = False
 filter_items = [] # Filter list of items the seed shouldn't contain
 valid_items = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 17, 18, 19, 20, 21, 27, 28, 32, 46, 48, 50, 51, 52, 53,
                54, 55, 57, 60, 62, 63, 64, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 79, 80, 81, 82, 87, 88, 89, 90, 91,
@@ -303,7 +304,7 @@ def find_seeds():
         number_of_seeds = 10
         numSeeds.set('10')
     try:
-        seed_offset = int(offset.get())
+        seed_offset = int(offset.get()) if not random_offset else randint(0,999999)
     except ValueError:
         seed_offset = 0
         offset.set('0')
@@ -350,6 +351,18 @@ def show_seeds():
 def toggle_show_items():
     global show_items
     show_items = not show_items
+
+def toggle_random_offset():
+    global random_offset
+    random_offset = not random_offset
+    if random_offset:
+        offset_entry.delete(0, END)
+        offset_entry.insert(END, "Random")
+        offset_entry.configure(state="disabled")
+    else:
+        offset_entry.configure(state="normal")
+        offset_entry.delete(0, END)
+        offset_entry.insert(END, "0")
 
 def filter_editor(parent):
     _image_library = {}
@@ -468,14 +481,14 @@ if __name__ == "__main__":
     widget.grid(row=3, column=0, sticky=E)
 
     # Seed offset label/entry/button
-    widget = Label(widget_holder, text="Offset:")
-    widget.grid(row=3, column=1, sticky=W)
+    offset_label = Label(widget_holder, text="Offset:")
+    offset_label.grid(row=3, column=1, sticky=W)
 
     offset = StringVar()
-    widget = Entry(widget_holder, width=12, textvariable=offset)
-    widget.insert(END, "0")
-    widget.bind("<Return>", lambda event: find_seeds())
-    widget.grid(row=3, column=1, sticky=E)
+    offset_entry = Entry(widget_holder, width=12, textvariable=offset)
+    offset_entry.insert(END, "0")
+    offset_entry.bind("<Return>", lambda event: find_seeds())
+    offset_entry.grid(row=3, column=1, sticky=E)
 
     widget = Button(widget_holder, text="Find Seeds", command=find_seeds)
     widget.grid(row=3, column=2)
@@ -501,6 +514,7 @@ if __name__ == "__main__":
     filemenu = Menu(menu, tearoff=0)
     main_window.config(menu=menu)
     filemenu.add_checkbutton(label="Hide Items", command=toggle_show_items)
+    filemenu.add_checkbutton(label="Random Offset", command=toggle_random_offset)
     filemenu.add_command(label="Edit Filter...", command=lambda : filter_editor(main_window))
-    menu.add_cascade(label="View", menu=filemenu)
+    menu.add_cascade(label="Settings", menu=filemenu)
     mainloop()
