@@ -304,6 +304,7 @@ def find_seeds():
         number_of_seeds = 10
         numSeeds.set('10')
     try:
+        seed()
         seed_offset = int(offset.get()) if not random_offset else randint(0,999999)
     except ValueError:
         seed_offset = 0
@@ -464,9 +465,9 @@ if __name__ == "__main__":
     # **** Seed Finding GUI ****
     widget_holder = LabelFrame(main_window, padx=5, pady=5)
     widget = Label(widget_holder,
-                   text='Choose up to 3 items to search for seeds with characters starting those items.\n\n\
-                   Offset indicates which seed # to start searching from so you\n\
-                   can search for the same items twice without finding repeat seeds',
+                   text="Choose up to 3 items to search for seeds with characters starting those items.\n\n"
+                   +"Offset indicates which seed # to start searching from so you\n"
+                   +"can search for the same items twice without finding repeat seeds",
                    justify=CENTER)
     widget.grid(row=0, column=0, columnspan=3)
     widget = Frame(widget_holder)
@@ -514,8 +515,8 @@ if __name__ == "__main__":
     # **** Seed Displaying GUI ****
     widget_holder = LabelFrame(main_window, padx=5, pady=5)
     widget = Label(widget_holder, justify=CENTER,
-                   text='Input a seed to display the characters and their respective items.\n\
-                   Trailing spaces are ignored.')
+                   text='Input a seed to display the characters and their respective items.\n'\
+                   +'Trailing spaces are ignored.')
     widget.pack()
 
     seed_to_display = StringVar()

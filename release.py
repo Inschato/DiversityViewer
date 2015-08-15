@@ -1,7 +1,7 @@
 import os, sys, shutil, py2exe
 from distutils.core import setup
 
-version = "0.2"
+version = "0.2.1"
 installName = 'DiversityViewer-' + version
 
 if os.path.isdir('target/'):
@@ -14,10 +14,12 @@ setup(
     options={
         'py2exe': {
             'dll_excludes': ['w9xpopen.exe'],
+            'excludes':['_ssl', 'difflib', 'doctest', 'locale', 'optparse', 'pickle', 'calendar'],
             'optimize': 2,
             'bundle_files': 1
         }
-    }
+    },
+    zipfile=None
 )
 
 shutil.copytree('dist/', installDir)
