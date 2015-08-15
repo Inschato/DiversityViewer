@@ -40,7 +40,7 @@ from math import sqrt
 
 debug = False
 debug_character = None # Use this to print out the items of a specific character to the console, Isaac = 0, Lost = 10
-show_items = True
+hide_items = False
 random_offset = False
 filter_items = [] # Filter list of items the seed shouldn't contain
 valid_items = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 17, 18, 19, 20, 21, 27, 28, 32, 46, 48, 50, 51, 52, 53,
@@ -288,7 +288,7 @@ class SeedsDisplay:
 
 
 def find_seeds():
-    display = SeedsDisplay(main_window, show_items)
+    display = SeedsDisplay(main_window, not filemenu.hide_items.get())
     seed_finder = SeedFind(display)
     seed_finder.seed_out = display.add_seed  # Redirect the output seeds to our display object as they are found.
     character = selected_character.current()
@@ -309,7 +309,10 @@ def find_seeds():
         seed_offset = 0
         offset.set('0')
     if not seed_finder.find_seeds(items_to_find, number_of_seeds, seed_offset, character):
-        display.window.destroy()
+        try:
+            display.window.destroy()
+        except:
+            pass
         display = None
         return
     try:
@@ -325,7 +328,6 @@ def find_seeds():
         normal_state = display.loadingMsg.configure('state')
         display.window.bind("<Return>", lambda event: append_seed() if display.loadingMsg.configure('state') == normal_state else None)
         display.update_window()
-
     except:
         if debug:
             import traceback
@@ -333,7 +335,7 @@ def find_seeds():
 
 
 def show_seeds():
-    display = SeedsDisplay(main_window, show_items)
+    display = SeedsDisplay(main_window, not filemenu.hide_items.get())
     seed_finder = SeedFind(display)
     the_seed = seed_to_display.get().strip()
     seed_items = seed_finder.get_seed(the_seed)
@@ -347,10 +349,6 @@ def show_seeds():
         if debug:
             import traceback
             traceback.print_exc()
-
-def toggle_show_items():
-    global show_items
-    show_items = not show_items
 
 def toggle_random_offset():
     global random_offset
@@ -435,6 +433,23 @@ def filter_editor(parent):
 
 
 if __name__ == "__main__":
+
+    with open("options.json", "r") as json_file:
+        options = json.load(json_file)
+
+    hide_items = options['hide_items']
+    filter_items = options['filter_items']
+
+    def save_options():
+        options['hide_items'] = filemenu.hide_items.get()
+        options['random_offset'] = filemenu.random_offset.get()
+        options['filter_items'] = filter_items
+        options['character'] = selected_character.current()
+        options['seeds'] = numSeeds.get()
+        with open("options.json", "w") as json_file:
+            json.dump(options, json_file, indent=3, sort_keys=True)
+        main_window.destroy()
+
     with open("items.txt", "r") as f:
         items_info = json.load(f)
     items = items_info.items()
@@ -444,6 +459,7 @@ if __name__ == "__main__":
 
     main_window = Tk()
     main_window.wm_title("Diversity Mod Seed Finder")
+    main_window.protocol("WM_DELETE_WINDOW", save_options)
 
     # **** Seed Finding GUI ****
     widget_holder = LabelFrame(main_window, padx=5, pady=5)
@@ -457,7 +473,7 @@ if __name__ == "__main__":
     selected_character = ttk.Combobox(widget, state='readonly',
                                       values=["Isaac", "Magdalene", "Cain", "Judas", "Blue_Baby", "Eve", "Samson",
                                               "Azazel", "Lazarus", "Eden", "The Lost", "Any Character"])
-    selected_character.current(11)
+    selected_character.current(options['character'])
     selected_character.pack()
     widget.grid(row=1, column=0, columnspan=3)
     desired_items = [None] * 3
@@ -476,7 +492,7 @@ if __name__ == "__main__":
 
     numSeeds = StringVar()
     widget = Entry(widget_holder, width=4, textvariable=numSeeds)
-    widget.insert(END, "10")
+    widget.insert(END, str(options['seeds']))
     widget.bind("<Return>", lambda event: find_seeds())
     widget.grid(row=3, column=0, sticky=E)
 
@@ -489,6 +505,8 @@ if __name__ == "__main__":
     offset_entry.insert(END, "0")
     offset_entry.bind("<Return>", lambda event: find_seeds())
     offset_entry.grid(row=3, column=1, sticky=E)
+    if options['random_offset']:
+        toggle_random_offset()
 
     widget = Button(widget_holder, text="Find Seeds", command=find_seeds)
     widget.grid(row=3, column=2)
@@ -513,8 +531,15 @@ if __name__ == "__main__":
     menu = Menu(main_window)
     filemenu = Menu(menu, tearoff=0)
     main_window.config(menu=menu)
-    filemenu.add_checkbutton(label="Hide Items", command=toggle_show_items)
-    filemenu.add_checkbutton(label="Random Offset", command=toggle_random_offset)
+
+    filemenu.hide_items = BooleanVar()
+    filemenu.add_checkbutton(label="Hide Items", variable=filemenu.hide_items)
+    filemenu.hide_items.set(options['hide_items'])
+
+    filemenu.random_offset = BooleanVar()
+    filemenu.add_checkbutton(label="Random Offset", command=toggle_random_offset, variable=filemenu.random_offset)
+    filemenu.random_offset.set(random_offset)
+
     filemenu.add_command(label="Edit Filter...", command=lambda : filter_editor(main_window))
     menu.add_cascade(label="Settings", menu=filemenu)
     mainloop()
