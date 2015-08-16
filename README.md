@@ -1,11 +1,11 @@
 Diversity Mod Seed Viewer
 =========================
-Created by Inschato, special thanks to Sillypears and Duneaught.
+Created by Inschato, with thanks to Duneaught, Sillypears, and Zamiel.
 
 
 For use with the Diversity Mod (v0.6-0.7) by Duneaught
 
-Available at: https://github.com/duneaught/diversitymod
+Which can be found at: https://github.com/duneaught/diversitymod
 
 
 Feature List

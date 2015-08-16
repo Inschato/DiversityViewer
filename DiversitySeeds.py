@@ -29,14 +29,15 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 '''
 
-import os
-import json
 from Tkinter import *
-from PIL import Image, ImageTk
-import ttk
+from ttk import Combobox
 import tkMessageBox
+import json
+from os import sep
 from random import sample, seed, randint
 from math import sqrt
+
+from PIL import Image, ImageTk
 
 debug = False
 debug_character = None # Use this to print out the items of a specific character to the console, Isaac = 0, Lost = 10
@@ -93,8 +94,8 @@ class SeedFind:
                 print("Error, item(s) not in valid_items list.")
                 self.window.window.destroy()
                 return None
-        if len(desired_items) > 0 and desired_items.issubset(fi):
-            tkMessageBox.showinfo("Sorry", "Error, all item(s) in filter list.")
+        if len(desired_items) > 0 and not desired_items.isdisjoint(fi):
+            tkMessageBox.showinfo("Sorry", "Whoops, one or more desired items in the filter list.")
             return None
         if instances == 0:
             return None
@@ -168,7 +169,7 @@ class SeedsDisplay:
 
         # Scrolling code taken from:
         # http://stackoverflow.com/questions/16188420/python-tkinter-scrollbar-for-frame
-        self.imageBox = LabelFrame(self.canvas, background="#191919", foreground="#FF0000", borderwidth=0)
+        self.imageBox = LabelFrame(self.canvas, background="#191919", foreground="#800000", borderwidth=0)
         interior_id = self.canvas.create_window(0, 0, window=self.imageBox, anchor=NW)
 
         # track changes to the canvas and frame width and sync them, also updating the scrollbar
@@ -199,7 +200,7 @@ class SeedsDisplay:
     def get_image(self, path):
         image = self._image_library.get(path)
         if image is None:
-            canonicalized_path = path.replace('/', os.sep).replace('\\', os.sep)
+            canonicalized_path = path.replace('/', sep).replace('\\', sep)
             image = ImageTk.PhotoImage(Image.open(canonicalized_path))
             self._image_library[path] = image
         return image
@@ -364,6 +365,7 @@ def toggle_random_offset():
         offset_entry.insert(END, "0")
 
 def filter_editor(parent):
+    import re
     _image_library = {}
     def id_to_image(i):
         return 'collectibles/collectibles_%s.png' % i.zfill(3)
@@ -372,7 +374,7 @@ def filter_editor(parent):
     def get_image(path):
         image = _image_library.get(path)
         if image is None:
-            canonicalized_path = path.replace('/', os.sep).replace('\\', os.sep)
+            canonicalized_path = path.replace('/', sep).replace('\\', sep)
             image = ImageTk.PhotoImage(Image.open(canonicalized_path))
             _image_library[path] = image
         return image
@@ -384,7 +386,7 @@ def filter_editor(parent):
             event.widget.configure(background="#191919")
         else:
             filter_items.append(item)
-            event.widget.configure(background="#FF0000")
+            event.widget.configure(background="#800000")
 
     def filter_window_closed():
         global filter_window
@@ -395,7 +397,7 @@ def filter_editor(parent):
         global filter_items
         filter_items = valid_items[:]
         for widget in items_holder.winfo_children():
-            widget.configure(background="#FF0000")
+            widget.configure(background="#800000")
 
     def filter_none():
         global filter_items
@@ -403,28 +405,51 @@ def filter_editor(parent):
         for widget in items_holder.winfo_children():
             widget.configure(background="#191919")
 
+    def filter_search(sv):
+        search_term = sv.get().lower()
+        for widget in items_holder.winfo_children():
+            item_name = items_info[str(widget.item).zfill(3)]['name'].lower()
+            try:
+                item_desc = items_info[str(widget.item).zfill(3)]['text'].lower()
+            except:
+                item_desc = ""
+            try:
+                if not re.search(search_term, item_name) and not re.search(search_term, item_desc):
+                    widget.grid_remove()
+                else:
+                    widget.grid()
+            except:
+                widget.grid()
+
     global filter_window
     if not filter_window:
         filter_window = Toplevel(parent)
-        filter_window.configure()
         filter_window.configure(background="#191919")
         filter_window.title("Filtered Items")
         filter_window.resizable(0, 0)
         filter_window.protocol("WM_DELETE_WINDOW", filter_window_closed)
         widget_holder = Frame(filter_window, background="#191919")
-        widget = Button(widget_holder, text="All", command=filter_all, padx=5, background="#191919", foreground="#FFFFFF")
-        widget.grid(row=0, column=3, padx=3)
-        widget = Button(widget_holder, text="None", command=filter_none, background="#191919", foreground="#FFFFFF")
-        widget.grid(row=0, column=2, padx=3)
+
         widget = Label(widget_holder, text="Click an item to add/remove it from the filter\n"+\
-                                           "Items in the filter will not appear in found seeds",
+                                           "Items in the filter will not appear as starting items in seeds",
                                            background="#191919", foreground="#FFFFFF")
-        widget.grid(row=0, column=0, columnspan=2, padx=3)
+        widget.grid(row=0, column=0,  padx=3)
+        widget = Button(widget_holder, text="None", command=filter_none, background="#191919", foreground="#FFFFFF")
+        widget.grid(row=0, column=1, padx=3)
+        widget = Button(widget_holder, text="All", command=filter_all, padx=5, background="#191919", foreground="#FFFFFF")
+        widget.grid(row=0, column=2, padx=3)
+        widget = Label(widget_holder, text="Search:", background="#191919", foreground="#FFFFFF")
+        widget.grid(row=0, column=3, padx=3)
+        filter_search_string = StringVar()
+        filter_search_string.trace("w", lambda name, index, mode, sv=filter_search_string: filter_search(sv))
+        widget = Entry(widget_holder, width=12, textvariable=filter_search_string)
+        widget.bind("<Escape>", lambda event: event.widget.delete(0,END))
+        widget.grid(row=0, column=4, sticky=E)
         widget_holder.pack()
         width = int(sqrt(len(items)))
         items_holder = Frame(filter_window, background="#191919")
         for index, item in enumerate(items):
-            widget = Label(items_holder,  background=("#FF0000" if (int(item[0]) in filter_items) else "#191919"))
+            widget = Label(items_holder,  background=("#800000" if (int(item[0]) in filter_items) else "#191919"))
             widget.item = int(item[0])
             widget.img = get_image(id_to_image(str(item[0])))
             widget.configure(image=widget.img)
@@ -460,6 +485,7 @@ if __name__ == "__main__":
 
     main_window = Tk()
     main_window.wm_title("Diversity Mod Seed Finder")
+    main_window.resizable(False,False)
     main_window.protocol("WM_DELETE_WINDOW", save_options)
 
     # **** Seed Finding GUI ****
@@ -471,7 +497,7 @@ if __name__ == "__main__":
                    justify=CENTER)
     widget.grid(row=0, column=0, columnspan=3)
     widget = Frame(widget_holder)
-    selected_character = ttk.Combobox(widget, state='readonly',
+    selected_character = Combobox(widget, state='readonly',
                                       values=["Isaac", "Magdalene", "Cain", "Judas", "Blue_Baby", "Eve", "Samson",
                                               "Azazel", "Lazarus", "Eden", "The Lost", "Any Character"])
     selected_character.current(options['character'])
@@ -480,7 +506,7 @@ if __name__ == "__main__":
     desired_items = [None] * 3
     for index in range(0, len(desired_items)):
         widget = Frame(widget_holder)
-        desired_items[index] = ttk.Combobox(widget, state='readonly',
+        desired_items[index] = Combobox(widget, state='readonly',
                                             values=[item[1]['name'] for item in items] + ["Any"])
         desired_items[index].current(len(items))
         desired_items[index].pack()
