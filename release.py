@@ -4,12 +4,12 @@ import shutil
 import py2exe
 from distutils.core import setup
 
-version = "0.2.2"
-installName = 'DiversityViewer-' + version
+version = "0.3"
+install_name = 'DiversityViewer-' + version
 
 if os.path.isdir('target/'):
     shutil.rmtree('target/')
-installDir = 'target/' + installName + '/'
+install_path = 'target/' + install_name + '/'
 
 sys.argv.append('py2exe')
 setup(
@@ -32,21 +32,21 @@ setup(
     zipfile=None
 )
 
-shutil.copytree('dist/', installDir)
-for root, dirs, files in os.walk(installDir + 'tcl/tcl8.5/', topdown=False):
+shutil.copytree('dist/', install_path)
+for root, dirs, files in os.walk(install_path + 'tcl/tcl8.5/', topdown=False):
     for name in files:
         if name not in ['auto.tcl', 'init.tcl', 'tclIndex']:
             os.remove(os.path.join(root, name))
     for name in dirs:
         os.rmdir(os.path.join(root,name))
-shutil.rmtree(installDir + 'tcl/tk8.5/demos')
-shutil.rmtree(installDir + 'tcl/tk8.5/images')
-shutil.rmtree(installDir + 'tcl/tk8.5/msgs')
+shutil.rmtree(install_path + 'tcl/tk8.5/demos')
+shutil.rmtree(install_path + 'tcl/tk8.5/images')
+shutil.rmtree(install_path + 'tcl/tk8.5/msgs')
 
-shutil.copytree('characters/', installDir + 'characters/')
-shutil.copytree('collectibles/', installDir + 'collectibles/')
-shutil.copy('README.md', installDir + "/README.txt")
-shutil.copy('items.txt', installDir + "/items.txt")
-shutil.copy('options.json', installDir + "/options.json")
+shutil.copytree('characters/', install_path + 'characters/')
+shutil.copytree('collectibles/', install_path + 'collectibles/')
+shutil.copy('README.md', install_path + "/README.txt")
+shutil.copy('items.txt', install_path + "/items.txt")
+shutil.copy('options.json', install_path + "/options.json")
 
-shutil.make_archive("target/" + installName, "zip", 'target', installName + "/")
+shutil.make_archive("target/" + install_name, "zip", 'target', install_name + "/")

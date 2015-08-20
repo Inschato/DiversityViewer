@@ -34,9 +34,9 @@ from ttk import Combobox
 import tkMessageBox
 import json
 from os import sep
-from random import sample, seed, randint
+from random import shuffle, sample, seed, randint
 from math import sqrt
-
+from binascii import crc32
 from PIL import Image, ImageTk
 
 debug = False
@@ -67,13 +67,98 @@ class SeedFind:
         self.valid_items = valid_items
         self.window = window
         self.last_seed = 0
+        self.characters = ["Isaac", "Magdalene", "Cain", "Judas", "Blue_Baby", "Eve", "Samson",
+                           "Azazel", "Lazarus", "Eden", "The Lost", "Any Character"]
         with open("items.txt", "r") as f:
             self.items_info = json.load(f)
 
+    # TODO: Restructure the character data
     def get_item_list(self, rng_seed):
-        seed(str(rng_seed))
-        # creates list of 33 unique items from the valid items list
-        return sample(self.valid_items, 33)[::-1]
+        seed(crc32(str(rng_seed)))
+        itemIDs = list(valid_items)
+        shuffle(itemIDs)
+        for x in range(6, 9): # cain
+            while itemIDs[x] in options['cain_excludes']:
+                del itemIDs[x]
+        for x in range(12, 15): # blue baby
+            while itemIDs[x] in options['blue_baby_excludes']:
+                del itemIDs[x]
+        for x in range(15, 18): # eve
+            while itemIDs[x] in options['eve_excludes']:
+                del itemIDs[x]
+        for x in range(18, 21): # samson
+            while itemIDs[x] in options['samson_excludes']:
+                del itemIDs[x]
+        for x in range(21, 24): # azazel
+            while itemIDs[x] in options['azazel_excludes']:
+                del itemIDs[x]
+        for x in range(24, 27): # lazarus
+            while itemIDs[x] in options['azazel_excludes']:
+                del itemIDs[x]
+        for x in range(30, 33): # the lost
+            while itemIDs[x] in options['the_lost_excludes']:
+                del itemIDs[x]
+        return itemIDs
+
+
+    def get_one_character_seed(self, rng_seed, character):
+        seed(crc32(str(rng_seed)))
+        itemIDs = list(valid_items)
+        shuffle(itemIDs)
+        if character > 1:
+            for x in range(6, 9): # cain
+                while itemIDs[x] in options['cain_excludes']:
+                    del itemIDs[x]
+        if character > 3:
+            for x in range(12, 15): # blue baby
+                while itemIDs[x] in options['blue_baby_excludes']:
+                    del itemIDs[x]
+        if character > 4:
+            for x in range(15, 18): # eve
+                while itemIDs[x] in options['eve_excludes']:
+                    del itemIDs[x]
+        if character > 5:
+            for x in range(18, 21): # samson
+                while itemIDs[x] in options['samson_excludes']:
+                    del itemIDs[x]
+        if character > 6:
+            for x in range(21, 24): # azazel
+                while itemIDs[x] in options['azazel_excludes']:
+                    del itemIDs[x]
+        if character > 7:
+            for x in range(24, 27): # lazarus
+                while itemIDs[x] in options['azazel_excludes']:
+                    del itemIDs[x]
+        if character > 9:
+            for x in range(30, 33): # the lost
+                while itemIDs[x] in options['the_lost_excludes']:
+                    del itemIDs[x]
+        return itemIDs
+
+    def check_excludes(self, desired_items, character):
+        if character in [0,1,3,9,11]:
+            return False
+        if character == 2: # Cain
+            excludes = frozenset(options.get('cain_excludes'))
+            return not excludes.isdisjoint(desired_items)
+        if character == 4: # Blue Baby
+            excludes = frozenset(options.get('blue_baby_excludes'))
+            return not excludes.isdisjoint(desired_items)
+        if character == 5: # Eve
+            excludes = frozenset(options['eve_excludes'])
+            return not excludes.isdisjoint(desired_items)
+        if character == 6: # Samson
+            excludes = frozenset(options['samson_excludes'])
+            return not excludes.isdisjoint(desired_items)
+        if character == 7: # Azazel
+            excludes = frozenset(options['azazel_excludes'])
+            return not excludes.isdisjoint(desired_items)
+        if character == 8: # Lazarus
+            excludes = frozenset(options['lazarus_excludes'])
+            return not excludes.isdisjoint(desired_items)
+        if character == 10: # The Lost
+            excludes = frozenset(options.get('the_lost_excludes'))
+            return not excludes.isdisjoint(desired_items)
 
     def get_seed(self, desired_seed):
         chars = [None] * 11
@@ -94,8 +179,16 @@ class SeedFind:
                 print("Error, item(s) not in valid_items list.")
                 self.window.window.destroy()
                 return None
+        if len(valid_items) - len(filter_items) < 3:
+            tkMessageBox.showinfo("Sorry", "There are too many filtered items.")
+            return None
         if len(desired_items) > 0 and not desired_items.isdisjoint(fi):
             tkMessageBox.showinfo("Sorry", "Whoops, one or more desired items in the filter list.")
+            return None
+        # TODO: Better feedback, or avoid letting them choose these
+        if len(desired_items) > 0 and self.check_excludes(desired_items, character):
+            tkMessageBox.showinfo("Sorry", "Whoops, " + self.characters[character] +
+                                  " cannot start with one or more of those items")
             return None
         if instances == 0:
             return None
@@ -106,7 +199,7 @@ class SeedFind:
         # This loop should be as efficient as possible
         while True:
             # periodically refresh the window
-            if not(next_seed % 2048):
+            if not(next_seed % 512):
                 try:
                     self.window.update_window()
                 except:
@@ -115,11 +208,13 @@ class SeedFind:
                         traceback.print_exc()
                     return None
 
-            item_ids = self.get_item_list(next_seed)
+
             if character == 11: # Get all the characters
+                item_ids = self.get_item_list(next_seed)
                 for current_character in range(0, 11):
                     chars[current_character] = item_ids[3 * current_character:(3 * current_character) + 3]
             else: # If asked for a specific character, only extract that one.
+                item_ids = self.get_one_character_seed(next_seed, character)
                 chars = [item_ids[3 * character:(3 * character) + 3]]
 
             for current_character, item_set in enumerate(chars):
@@ -247,7 +342,7 @@ class SeedsDisplay:
     def add_seed(self, number, character, items):
         try:
             # Use a text widget so the user can select and copy it
-            widget = Text(self.imageBox, width=len(str(number)), height=1, borderwidth=0, foreground="#FFFFFF",
+            widget = Text(self.imageBox, width=len(str(number))+2, height=1, borderwidth=0, foreground="#FFFFFF",
                      background="#191919", font=("Helvetica", 16))
             widget.insert(1.0, str(number))
             widget.grid(row=self.row, column=0, padx=0, pady=0, sticky=W)
@@ -319,13 +414,11 @@ def find_seeds():
         return
     try:
         def append_seed():
-            display.loadingMsg.configure(state='disabled')
-            display.loadingMsg.configure(text='Loading...')
+            display.loadingMsg.configure(state='disabled', text='Loading')
             seed_finder.find_seeds(items_to_find, 1, seed_finder.last_seed+1, character)
+            display.loadingMsg.configure(state='normal', text='Next Seed')
             display.canvas.yview_moveto(1)
-            display.loadingMsg.configure(state='normal')
-            display.loadingMsg.configure(text='Next Seed')
-        display.loadingMsg.destroy()
+        display.loadingMsg.destroy() # Remove the 'Loading...' text label
         display.loadingMsg = Button(display.imageBox, text="Next Seed", command=append_seed)
         normal_state = display.loadingMsg.configure('state')
         display.window.bind("<Return>", lambda event: append_seed() if display.loadingMsg.configure('state') == normal_state else None)
@@ -364,6 +457,14 @@ def toggle_random_offset():
         offset_entry.delete(0, END)
         offset_entry.insert(END, "0")
 
+def update_filter_label():
+    if len(filter_items) > 1:
+        filter_label.configure(text="Filtering " + str(len(filter_items)) + " items")
+    elif len(filter_items) == 1:
+        filter_label.configure(text="Filtering " + str(len(filter_items)) + " item")
+    else:
+        filter_label.configure(text="")
+
 def filter_editor(parent):
     import re
     _image_library = {}
@@ -387,6 +488,7 @@ def filter_editor(parent):
         else:
             filter_items.append(item)
             event.widget.configure(background="#800000")
+        update_filter_label()
 
     def filter_window_closed():
         global filter_window
@@ -398,12 +500,14 @@ def filter_editor(parent):
         filter_items = valid_items[:]
         for widget in items_holder.winfo_children():
             widget.configure(background="#800000")
+        update_filter_label()
 
     def filter_none():
         global filter_items
         filter_items = []
         for widget in items_holder.winfo_children():
             widget.configure(background="#191919")
+        update_filter_label()
 
     def filter_search(sv):
         search_term = sv.get().lower()
@@ -430,7 +534,7 @@ def filter_editor(parent):
         filter_window.protocol("WM_DELETE_WINDOW", filter_window_closed)
         widget_holder = Frame(filter_window, background="#191919")
 
-        widget = Label(widget_holder, text="Click an item to add/remove it from the filter\n"+\
+        widget = Label(widget_holder, text="Click an item to add/remove it from the filter\n"+
                                            "Items in the filter will not appear as starting items in seeds",
                                            background="#191919", foreground="#FFFFFF")
         widget.grid(row=0, column=0,  padx=3)
@@ -445,7 +549,7 @@ def filter_editor(parent):
         widget = Entry(widget_holder, width=12, textvariable=filter_search_string)
         widget.bind("<Escape>", lambda event: event.widget.delete(0,END))
         widget.grid(row=0, column=4, sticky=E)
-        widget_holder.pack()
+        widget_holder.grid()
         width = int(sqrt(len(items)))
         items_holder = Frame(filter_window, background="#191919")
         for index, item in enumerate(items):
@@ -455,7 +559,9 @@ def filter_editor(parent):
             widget.configure(image=widget.img)
             widget.bind("<Button-1>", filter_toggle)
             widget.grid(row=index/width, column=index%width, padx=0, pady=0, sticky=W)
-        items_holder.pack()
+        items_holder.grid()
+        items_holder.update()
+        items_holder.grid_propagate(False)
 
 
 if __name__ == "__main__":
@@ -484,7 +590,7 @@ if __name__ == "__main__":
     filter_window = None
 
     main_window = Tk()
-    main_window.wm_title("Diversity Mod Seed Finder")
+    main_window.wm_title("DM Viewer v0.3 for Diversity Mod v0.11")
     main_window.resizable(False,False)
     main_window.protocol("WM_DELETE_WINDOW", save_options)
 
@@ -537,6 +643,11 @@ if __name__ == "__main__":
 
     widget = Button(widget_holder, text="Find Seeds", command=find_seeds)
     widget.grid(row=3, column=2)
+
+    filter_label = Label(widget_holder, text="")
+    filter_label.grid(row=1, column=2)
+    filter_label.bind("<Button 1>", lambda event: filter_editor(main_window))
+    update_filter_label()
 
     # **** Seed Displaying GUI ****
     widget_holder = LabelFrame(main_window, padx=5, pady=5)
