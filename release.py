@@ -4,7 +4,7 @@ import shutil
 import py2exe
 from distutils.core import setup
 
-version = "0.3"
+version = "0.3.1"
 install_name = 'DiversityViewer-' + version
 
 if os.path.isdir('target/'):
@@ -21,7 +21,6 @@ setup(
                         'calendar', 'unittest', 'pdb','inspect', '_codecs', 'logging',
                         'PIL.BmpImagePlugin', 'PIL.GifImagePlugin', 'PIL.GimpGradientFile',
                         'PIL.GimpPaletteFile', 'PIL.JpegImagePlugin', 'PIL.PpmImagePlugin',
-                        'PIL.ImageChops', 'PIL.ImageColor', 'PIL.ImageFile', 'PIL.ImageMode',
                         'PIL.PaletteFile', 'TiffImagePlugin', 'TiffTags', 'array', 'pyreadline',
                         'PaletteFile', 'BmpImagePlugin', 'GifImagePlugin', 'GimpGradientFile',
                         'GimpPaletteFile', 'ImageChops', 'JpegImagePlugin', 'PpmImagePlugin'],

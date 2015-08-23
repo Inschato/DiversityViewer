@@ -31,6 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from Tkinter import *
 from ttk import Combobox
+import tkFileDialog
 import tkMessageBox
 import json
 from os import sep
@@ -41,7 +42,6 @@ from PIL import Image, ImageTk
 
 debug = False
 debug_character = None # Use this to print out the items of a specific character to the console, Isaac = 0, Lost = 10
-hide_items = False
 random_offset = False
 filter_items = [] # Filter list of items the seed shouldn't contain
 valid_items = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 17, 18, 19, 20, 21, 27, 28, 32, 46, 48, 50, 51, 52, 53,
@@ -201,6 +201,7 @@ class SeedFind:
             # periodically refresh the window
             if not(next_seed % 512):
                 try:
+                    self.window.loadingMsg.configure(text='Loading... (' + str(next_seed - offset) + ' checked)')
                     self.window.update_window()
                 except:
                     if debug==True:
@@ -253,6 +254,7 @@ class SeedsDisplay:
         self.window.bind("<End>", lambda event: self.canvas.yview_moveto(1))
         self.window.bind("<Prior>", lambda event: self.canvas.yview_scroll(-1,'pages'))
         self.window.bind("<Next>", lambda event: self.canvas.yview_scroll(1,'pages'))
+        self.window.tk.call('wm', 'iconphoto', self.window._w, ImageTk.PhotoImage(Image.open('collectibles/collectibles_091.png')))
 
         # Initialize the scrolling canvas
         self.canvas = Canvas(self.window, background="#191919", borderwidth=0)
@@ -458,12 +460,27 @@ def toggle_random_offset():
         offset_entry.insert(END, "0")
 
 def update_filter_label():
-    if len(filter_items) > 1:
-        filter_label.configure(text="Filtering " + str(len(filter_items)) + " items")
-    elif len(filter_items) == 1:
-        filter_label.configure(text="Filtering " + str(len(filter_items)) + " item")
+    if len(filter_items) > 0:
+        filter_label.configure(text="Filtering " + str(len(filter_items)) + " item" + ("s" if len(filter_items) > 1 else ""))
     else:
         filter_label.configure(text="")
+    p = options.get('filter_dump_path')
+    if p:
+        items_list = []
+        for item in filter_items:
+            items_list.append(items_info[str(item).zfill(3)]['name'] + '\n')
+        items_list.sort()
+        try:
+            with open(p, 'w') as f:
+                f.writelines(items_list)
+        except:
+            pass
+
+def filter_dump_set():
+    f = tkFileDialog.asksaveasfilename(defaultextension='.txt')
+    if f:
+        options['filter_dump_path'] = f
+        update_filter_label()
 
 def filter_editor(parent):
     import re
@@ -532,6 +549,7 @@ def filter_editor(parent):
         filter_window.title("Filtered Items")
         filter_window.resizable(0, 0)
         filter_window.protocol("WM_DELETE_WINDOW", filter_window_closed)
+        filter_window.tk.call('wm', 'iconphoto', filter_window._w, ImageTk.PhotoImage(Image.open('collectibles/collectibles_331.png')))
         widget_holder = Frame(filter_window, background="#191919")
 
         widget = Label(widget_holder, text="Click an item to add/remove it from the filter\n"+
@@ -564,12 +582,15 @@ def filter_editor(parent):
         items_holder.grid_propagate(False)
 
 
+def entry_select_all(event):
+    event.widget.selection_range(0,END)
+    return "break"
+
 if __name__ == "__main__":
 
     with open("options.json", "r") as json_file:
         options = json.load(json_file)
 
-    hide_items = options['hide_items']
     filter_items = options['filter_items']
 
     def save_options():
@@ -590,9 +611,11 @@ if __name__ == "__main__":
     filter_window = None
 
     main_window = Tk()
-    main_window.wm_title("DM Viewer v0.3 for Diversity Mod v0.11")
+    main_window.wm_title("DM Viewer v0.3.1 for Diversity Mod v0.11")
     main_window.resizable(False,False)
     main_window.protocol("WM_DELETE_WINDOW", save_options)
+    main_window.bind_class("Entry", "<Control-a>", lambda e: e.widget.selection_range(0,END))
+    main_window.tk.call('wm', 'iconphoto', main_window._w, ImageTk.PhotoImage(Image.open('collectibles/collectibles_021.png')))
 
     # **** Seed Finding GUI ****
     widget_holder = LabelFrame(main_window, padx=5, pady=5)
@@ -679,5 +702,6 @@ if __name__ == "__main__":
     filemenu.random_offset.set(random_offset)
 
     filemenu.add_command(label="Edit Filter...", command=lambda : filter_editor(main_window))
+    filemenu.add_command(label="Set Filter Dump Location...", command=lambda : filter_dump_set())
     menu.add_cascade(label="Settings", menu=filemenu)
     mainloop()
