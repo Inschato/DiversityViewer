@@ -1,0 +1,8 @@
+build
+dist
+target
+filter.txt
+
+.idea
+*.spec
+*.pyc
