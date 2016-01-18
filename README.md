@@ -1,4 +1,4 @@
-Diversity Mod Seed Viewer v0.3
+Diversity Mod Seed Viewer v0.4
 =========================
 Created by Inschato, with thanks to Duneaught, Sillypears, and Zamiel.
 

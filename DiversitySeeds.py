@@ -35,27 +35,49 @@ import tkFileDialog
 import tkMessageBox
 import json
 from os import sep
-from random import shuffle, sample, seed, randint
+from random import shuffle, choice, seed, randint
 from math import sqrt
 from binascii import crc32
 from PIL import Image, ImageTk
+from string import ascii_uppercase, digits
+
 
 debug = False
-debug_character = None # Use this to print out the items of a specific character to the console, Isaac = 0, Lost = 10
 random_offset = False
-filter_items = [] # Filter list of items the seed shouldn't contain
-valid_items = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 17, 18, 19, 20, 21, 27, 28, 32, 46, 48, 50, 51, 52, 53,
-               54, 55, 57, 60, 62, 63, 64, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 79, 80, 81, 82, 87, 88, 89, 90, 91,
-               94, 95, 96, 98, 99, 100, 101, 103, 104, 106, 108, 109, 110, 112, 113, 114, 115, 116, 117, 118, 120, 121,
-               122, 125, 128, 129, 131, 132, 134, 138, 139, 140, 141, 142, 143, 144, 148, 149, 150, 151, 152, 153, 154,
-               155, 156, 157, 159, 161, 162, 163, 165, 167, 168, 169, 170, 172, 173, 174, 178, 179, 180, 182, 183, 184,
-               185, 187, 188, 189, 190, 191, 193, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208,
-               209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 227, 228, 229, 230,
-               231, 232, 233, 234, 236, 237, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 254, 255,
-               256, 257, 258, 259, 260, 261, 262, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277,
-               278, 279, 280, 281, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315,
-               316, 317, 318, 319, 320, 321, 322, 327, 328, 329, 330, 331, 332, 333, 335, 336, 337, 340, 341, 342, 343,
-               345]
+valid_items =  [
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+        11, 12, 13, 14, 17, 18, 19, 20, 21, 27,
+        28, 32, 46, 48, 50, 51, 52, 53, 54, 55,
+        57, 60, 62, 63, 64, 67, 68, 69, 70, 71,
+        72, 73, 74, 75, 76, 79, 80, 81, 82, 87,
+        88, 89, 90, 91, 94, 95, 96, 98, 99, 100,
+        101, 103, 104, 106, 108, 109, 110, 112, 113, 114,
+        115, 116, 117, 118, 120, 121, 122, 125, 128, 129,
+        131, 132, 134, 138, 139, 140, 141, 142, 143, 144,
+        148, 149, 150, 151, 152, 153, 154, 155, 156, 157,
+        159, 161, 162, 163, 165, 167, 168, 169, 170, 172,
+        173, 174, 178, 179, 180, 182, 183, 184, 185, 187,
+        188, 189, 190, 191, 193, 195, 196, 197, 198, 199,
+        200, 201, 202, 203, 204, 205, 206, 207, 208, 209,
+        210, 211, 212, 213, 214, 215, 216, 217, 218, 219,
+        220, 221, 222, 223, 224, 225, 227, 228, 229, 230,
+        231, 232, 233, 234, 236, 237, 240, 241, 242, 243,
+        244, 245, 246, 247, 248, 249, 250, 251, 252, 254,
+        255, 256, 257, 259, 260, 261, 262, 264, 265, 266,
+        267, 268, 269, 270, 271, 272, 273, 274, 275, 276,
+        277, 278, 279, 280, 281, 299, 300, 301, 302, 303,
+        304, 305, 306, 307, 308, 309, 310, 311, 312, 313,
+        314, 315, 316, 317, 318, 319, 320, 321, 322, 327,
+        328, 329, 330, 331, 332, 333, 335, 336, 337, 340,
+        341, 342, 343, 345, 350, 353, 354, 356, 358, 359,
+        360, 361, 362, 363, 364, 365, 366, 367, 368, 369,
+        370, 371, 372, 373, 374, 375, 376, 377, 378, 379,
+        380, 381, 384, 385, 387, 388, 389, 390, 391, 392,
+        393, 394, 395, 397, 398, 399, 400, 401, 402, 403,
+        404, 405, 407, 408, 409, 410, 411, 412, 413, 414,
+        415, 416, 417, 418, 420, 423, 424, 425, 426, 429,
+        430, 431, 432, 433, 435, 436, 438, 440
+    ]
 
 
 class SeedFind:
@@ -67,111 +89,25 @@ class SeedFind:
         self.valid_items = valid_items
         self.window = window
         self.last_seed = 0
-        self.characters = ["Isaac", "Magdalene", "Cain", "Judas", "Blue_Baby", "Eve", "Samson",
-                           "Azazel", "Lazarus", "Eden", "The Lost", "Any Character"]
         with open("items.txt", "r") as f:
             self.items_info = json.load(f)
 
     # TODO: Restructure the character data
     def get_item_list(self, rng_seed):
         seed(crc32(str(rng_seed)))
-        itemIDs = list(valid_items)
+        itemIDs = valid_items[:]
         shuffle(itemIDs)
-        for x in range(6, 9): # cain
-            while itemIDs[x] in options['cain_excludes']:
-                del itemIDs[x]
-        for x in range(12, 15): # blue baby
-            while itemIDs[x] in options['blue_baby_excludes']:
-                del itemIDs[x]
-        for x in range(15, 18): # eve
-            while itemIDs[x] in options['eve_excludes']:
-                del itemIDs[x]
-        for x in range(18, 21): # samson
-            while itemIDs[x] in options['samson_excludes']:
-                del itemIDs[x]
-        for x in range(21, 24): # azazel
-            while itemIDs[x] in options['azazel_excludes']:
-                del itemIDs[x]
-        for x in range(24, 27): # lazarus
-            while itemIDs[x] in options['azazel_excludes']:
-                del itemIDs[x]
-        for x in range(30, 33): # the lost
-            while itemIDs[x] in options['the_lost_excludes']:
-                del itemIDs[x]
-        return itemIDs
-
-
-    def get_one_character_seed(self, rng_seed, character):
-        seed(crc32(str(rng_seed)))
-        itemIDs = list(valid_items)
-        shuffle(itemIDs)
-        if character > 1:
-            for x in range(6, 9): # cain
-                while itemIDs[x] in options['cain_excludes']:
-                    del itemIDs[x]
-        if character > 3:
-            for x in range(12, 15): # blue baby
-                while itemIDs[x] in options['blue_baby_excludes']:
-                    del itemIDs[x]
-        if character > 4:
-            for x in range(15, 18): # eve
-                while itemIDs[x] in options['eve_excludes']:
-                    del itemIDs[x]
-        if character > 5:
-            for x in range(18, 21): # samson
-                while itemIDs[x] in options['samson_excludes']:
-                    del itemIDs[x]
-        if character > 6:
-            for x in range(21, 24): # azazel
-                while itemIDs[x] in options['azazel_excludes']:
-                    del itemIDs[x]
-        if character > 7:
-            for x in range(24, 27): # lazarus
-                while itemIDs[x] in options['azazel_excludes']:
-                    del itemIDs[x]
-        if character > 9:
-            for x in range(30, 33): # the lost
-                while itemIDs[x] in options['the_lost_excludes']:
-                    del itemIDs[x]
-        return itemIDs
-
-    def check_excludes(self, desired_items, character):
-        if character in [0,1,3,9,11]:
-            return False
-        if character == 2: # Cain
-            excludes = frozenset(options.get('cain_excludes'))
-            return not excludes.isdisjoint(desired_items)
-        if character == 4: # Blue Baby
-            excludes = frozenset(options.get('blue_baby_excludes'))
-            return not excludes.isdisjoint(desired_items)
-        if character == 5: # Eve
-            excludes = frozenset(options['eve_excludes'])
-            return not excludes.isdisjoint(desired_items)
-        if character == 6: # Samson
-            excludes = frozenset(options['samson_excludes'])
-            return not excludes.isdisjoint(desired_items)
-        if character == 7: # Azazel
-            excludes = frozenset(options['azazel_excludes'])
-            return not excludes.isdisjoint(desired_items)
-        if character == 8: # Lazarus
-            excludes = frozenset(options['lazarus_excludes'])
-            return not excludes.isdisjoint(desired_items)
-        if character == 10: # The Lost
-            excludes = frozenset(options.get('the_lost_excludes'))
-            return not excludes.isdisjoint(desired_items)
+        return itemIDs[0:3]
 
     def get_seed(self, desired_seed):
-        chars = [None] * 11
-        item_ids = self.get_item_list(desired_seed)
-        for i in range(0, 11):
-            chars[i] = item_ids[3 * i:(3 * i) + 3]
-        return chars
+        return self.get_item_list(desired_seed)
 
     # Redefine me to redirect this output
-    def seed_out(self, number, character, items):
+    def seed_out(self, number, items):
         pass
 
-    def find_seeds(self, desired_items, instances=1, offset=0, character=11):
+    def find_seeds(self, desired_items, instances=1, offset=0):
+        # Sanity check the input
         desired_items = frozenset(desired_items)
         fi = frozenset(filter_items)
         for ID in desired_items:
@@ -185,23 +121,29 @@ class SeedFind:
         if len(desired_items) > 0 and not desired_items.isdisjoint(fi):
             tkMessageBox.showinfo("Sorry", "Whoops, one or more desired items in the filter list.")
             return None
-        # TODO: Better feedback, or avoid letting them choose these
-        if len(desired_items) > 0 and self.check_excludes(desired_items, character):
-            tkMessageBox.showinfo("Sorry", "Whoops, " + self.characters[character] +
-                                  " cannot start with one or more of those items")
-            return None
+
         if instances == 0:
             return None
-        next_seed = offset
+
+        # Initialize
+        if type(offset) == int:
+            next_seed = offset
+        else:
+            seed()
+            rng_seed = randint(-10000000,10000000)
+            next_seed = ''.join(choice(ascii_uppercase + digits) for _ in range(6))
+
+        seeds_checked = 0
         seeds_found = 0
         result = []
-        chars = [None] * 11
-        # This loop should be as efficient as possible
+
+        # Seed finding loop
         while True:
             # periodically refresh the window
-            if not(next_seed % 512):
+            if not(seeds_checked % 512):
                 try:
-                    self.window.loadingMsg.configure(text='Loading... (' + str(next_seed - offset) + ' checked)')
+                    if not(seeds_checked % 4096):
+                        self.window.loadingMsg.configure(text='Loading... (' + str(seeds_checked) + ' checked)')
                     self.window.update_window()
                 except:
                     if debug==True:
@@ -209,26 +151,20 @@ class SeedFind:
                         traceback.print_exc()
                     return None
 
-
-            if character == 11: # Get all the characters
-                item_ids = self.get_item_list(next_seed)
-                for current_character in range(0, 11):
-                    chars[current_character] = item_ids[3 * current_character:(3 * current_character) + 3]
-            else: # If asked for a specific character, only extract that one.
-                item_ids = self.get_one_character_seed(next_seed, character)
-                chars = [item_ids[3 * character:(3 * character) + 3]]
-
-            for current_character, item_set in enumerate(chars):
-                current_item_set = frozenset(item_set)
-                if not (desired_items <= current_item_set) or not fi.isdisjoint(current_item_set):
-                    continue
+            current_item_set = frozenset(self.get_item_list(next_seed))
+            if (desired_items <= current_item_set) and fi.isdisjoint(current_item_set):
                 result.append(next_seed)
                 seeds_found += 1
-                if not self.seed_out(next_seed, current_character if character == 11 else character, item_set) or\
-                    seeds_found >= instances:
+                if not self.seed_out(next_seed, current_item_set) or seeds_found >= instances:
                     self.last_seed = next_seed
                     return result
-            next_seed += 1
+
+            seeds_checked += 1
+            if type(offset) == int:
+                next_seed += 1
+            else:
+                seed(rng_seed + seeds_checked)
+                next_seed = ''.join(choice(ascii_uppercase + digits) for _ in range(6))
 
 
 class SeedsDisplay:
@@ -279,8 +215,7 @@ class SeedsDisplay:
                 self.canvas.config(width=self.imageBox.winfo_reqwidth())
 
         self.imageBox.bind('<Configure>', _configure_interior)
-        self.loadingMsg = Label(self.imageBox, text="Loading..", background="#191919", foreground="#FFFFFF",
-                                font=("Helvetica", 16), borderwidth=0)
+        self.loadingMsg = Button(self.imageBox, text="Loading..", borderwidth=0, state='disabled')
 
         def _configure_canvas(event):
             if self.imageBox.winfo_reqwidth() != self.imageBox.winfo_width():
@@ -336,12 +271,8 @@ class SeedsDisplay:
         self.row += 1
         self.update_window()
 
-    def get_character_image(self, character):
-        characters = ["Isaac", "Magdalene", "Cain", "Judas", "Blue_Baby", "Eve", "Samson", "Azazel", "Lazarus",
-                      "Eden", "The_Lost"]
-        return self.get_image('characters/' + characters[character] + '_App.png')
 
-    def add_seed(self, number, character, items):
+    def add_seed(self, number, items):
         try:
             # Use a text widget so the user can select and copy it
             widget = Text(self.imageBox, width=len(str(number))+2, height=1, borderwidth=0, foreground="#FFFFFF",
@@ -349,15 +280,6 @@ class SeedsDisplay:
             widget.insert(1.0, str(number))
             widget.grid(row=self.row, column=0, padx=0, pady=0, sticky=W)
             widget.configure(state="disabled")
-            photo = self.get_character_image(character)
-            widget = Label(self.imageBox, image=photo, foreground="#FFFFFF", background="#191919", font=("Helvetica", 16))
-            widget.grid(row=self.row, column=1, padx=0, pady=0, sticky=W)
-            if character==debug_character:
-                char_dump = ""
-                for item in items:
-                    i = items_info.get(str(item).zfill(3))
-                    if i: char_dump += i.get('name') + ", "
-                print char_dump[:-2]
             def show_items(event, row):
                 if event:
                     event.widget.destroy() # Remove the "Show Items" text
@@ -389,11 +311,10 @@ def find_seeds():
     display = SeedsDisplay(main_window, not filemenu.hide_items.get())
     seed_finder = SeedFind(display)
     seed_finder.seed_out = display.add_seed  # Redirect the output seeds to our display object as they are found.
-    character = selected_character.current()
     items_to_find = []
     for i in desired_items:
-        if i.get() != "Any":
-            items_to_find += [int(items[i.current()][0])]
+        if i.item != "Any":
+            items_to_find += [int(i.item)]
     display.seed_find_label(items_to_find[:])
     display.update_window()
     try:
@@ -403,11 +324,11 @@ def find_seeds():
         numSeeds.set('10')
     try:
         seed()
-        seed_offset = int(offset.get()) if not random_offset else randint(0,999999)
+        seed_offset = int(offset.get()) if not random_offset else 'Random'
     except ValueError:
         seed_offset = 0
         offset.set('0')
-    if not seed_finder.find_seeds(items_to_find, number_of_seeds, seed_offset, character):
+    if not seed_finder.find_seeds(items_to_find, number_of_seeds, seed_offset):
         try:
             display.window.destroy()
         except:
@@ -417,7 +338,10 @@ def find_seeds():
     try:
         def append_seed():
             display.loadingMsg.configure(state='disabled', text='Loading')
-            seed_finder.find_seeds(items_to_find, 1, seed_finder.last_seed+1, character)
+            if type(seed_finder.last_seed) == int:
+                seed_finder.find_seeds(items_to_find, 1, seed_finder.last_seed+1, character)
+            else:
+                seed_finder.find_seeds(items_to_find, 1, 'Random', character)
             display.loadingMsg.configure(state='normal', text='Next Seed')
             display.canvas.yview_moveto(1)
         display.loadingMsg.destroy() # Remove the 'Loading...' text label
@@ -437,8 +361,7 @@ def show_seeds():
     the_seed = seed_to_display.get().strip()
     seed_items = seed_finder.get_seed(the_seed)
     display.get_seed_label()
-    for char, items in enumerate(seed_items):
-        display.add_seed(the_seed, char, items)
+    display.add_seed(the_seed, seed_items)
     try:
         display.update_window()
         display.loadingMsg.configure(text="Done!")
@@ -462,8 +385,9 @@ def toggle_random_offset():
 def update_filter_label():
     if len(filter_items) > 0:
         filter_label.configure(text="Filtering " + str(len(filter_items)) + " item" + ("s" if len(filter_items) > 1 else ""))
+        filter_label.grid()
     else:
-        filter_label.configure(text="")
+        filter_label.grid_remove()
     p = options.get('filter_dump_path')
     if p:
         items_list = []
@@ -482,20 +406,24 @@ def filter_dump_set():
         options['filter_dump_path'] = f
         update_filter_label()
 
+_image_library = {}
+def id_to_image(i):
+    if i == 'questionmark' or i == 'Any':
+        return 'collectibles/questionmark.png'
+    return 'collectibles/collectibles_%s.png' % i.zfill(3)
+
+# image library stuff, from openbookproject.net
+def get_image(path):
+    image = _image_library.get(path)
+    if image is None:
+        canonicalized_path = path.replace('/', sep).replace('\\', sep)
+        image = ImageTk.PhotoImage(Image.open(canonicalized_path))
+        _image_library[path] = image
+    return image
+
 def filter_editor(parent):
     import re
-    _image_library = {}
-    def id_to_image(i):
-        return 'collectibles/collectibles_%s.png' % i.zfill(3)
 
-    # image library stuff, from openbookproject.net
-    def get_image(path):
-        image = _image_library.get(path)
-        if image is None:
-            canonicalized_path = path.replace('/', sep).replace('\\', sep)
-            image = ImageTk.PhotoImage(Image.open(canonicalized_path))
-            _image_library[path] = image
-        return image
 
     def filter_toggle(event):
         item = event.widget.item
@@ -542,6 +470,19 @@ def filter_editor(parent):
             except:
                 widget.grid()
 
+    def filter_search_toggle():
+        for child in items_holder.winfo_children():
+            if child.winfo_manager() != "":
+                item_widget = child
+                item = item_widget.item
+                if item in filter_items:
+                    filter_items.remove(item)
+                    item_widget.configure(background="#191919")
+                else:
+                    filter_items.append(item)
+                    item_widget.configure(background="#800000")
+        update_filter_label()
+
     global filter_window
     if not filter_window:
         filter_window = Toplevel(parent)
@@ -564,9 +505,10 @@ def filter_editor(parent):
         widget.grid(row=0, column=3, padx=3)
         filter_search_string = StringVar()
         filter_search_string.trace("w", lambda name, index, mode, sv=filter_search_string: filter_search(sv))
-        widget = Entry(widget_holder, width=12, textvariable=filter_search_string)
-        widget.bind("<Escape>", lambda event: event.widget.delete(0,END))
-        widget.grid(row=0, column=4, sticky=E)
+        filter_search_entry = Entry(widget_holder, width=12, textvariable=filter_search_string)
+        filter_search_entry.bind("<Escape>", lambda event: event.widget.delete(0,END))
+        filter_search_entry.bind("<Return>", lambda event: filter_search_toggle())
+        filter_search_entry.grid(row=0, column=4, sticky=E)
         widget_holder.grid()
         width = int(sqrt(len(items)))
         items_holder = Frame(filter_window, background="#191919")
@@ -580,11 +522,109 @@ def filter_editor(parent):
         items_holder.grid()
         items_holder.update()
         items_holder.grid_propagate(False)
+        filter_search_entry.focus()
+
+# Where item_widget is the item label widget being selected for
+def item_selector(parent, item_widget):
+    global item_selector_window
+    def destroy_window():
+        global item_selector_window
+        item_selector_window.destroy()
+        item_selector_window = None
+
+    def select_item(event):
+        global item_selector_window
+        item = event.widget.item
+        item_selector_window.item_widget.item = item
+        item_selector_window.item_widget.text.configure(text="Any Item" if item == 'Any' else items_info[str(item).zfill(3)]['name'])
+        item_selector_window.item_widget.img = get_image(id_to_image(str(item)))
+        item_selector_window.item_widget.configure(image=item_selector_window.item_widget.img)
+        item_selector_window.destroy()
+        item_selector_window = None
+
+    def select_item_search():
+        item = None
+        for child in items_holder.winfo_children():
+            if child.winfo_manager() != "" and item != None:
+                return
+            elif child.winfo_manager() != "":
+                item = child.item
+        if item:
+            global item_selector_window
+            item_selector_window.item_widget.item = item
+            item_selector_window.item_widget.text.configure(text=items_info[str(item).zfill(3)]['name'])
+            item_selector_window.item_widget.img = get_image(id_to_image(str(item)))
+            item_selector_window.item_widget.configure(image=item_selector_window.item_widget.img)
+            item_selector_window.destroy()
+            item_selector_window = None
+
+    def selector_search(sv):
+        search_term = sv.get().lower()
+        for widget in items_holder.winfo_children():
+            if widget.item == 'Any':
+                item_name = "."
+            else:
+                item_name = items_info[str(widget.item).zfill(3)]['name'].lower()
+            try:
+                item_desc = items_info[str(widget.item).zfill(3)]['text'].lower()
+            except:
+                item_desc = ""
+            try:
+                if widget.item in filter_items or (not re.search(search_term, item_name) and not re.search(search_term, item_desc)):
+                    widget.grid_remove()
+                else:
+                    widget.grid()
+            except:
+                widget.grid()
 
 
-def entry_select_all(event):
-    event.widget.selection_range(0,END)
-    return "break"
+    # If the window isn't open, or we're choosing for a different item
+    if not item_selector_window or item_selector_window.item_widget != item_widget or item_selector_window.state() == 'iconic':
+        if item_selector_window:
+            item_selector_window.destroy()
+        item_selector_window = Toplevel(parent)
+        item_selector_window.title("Select an Item")
+        item_selector_window.resizable(False, False)
+        item_selector_window.protocol("WM_DELETE_WINDOW", destroy_window)
+        item_selector_window.tk.call('wm', 'iconphoto', item_selector_window._w, ImageTk.PhotoImage(Image.open('collectibles/questionmark.png')))
+        item_selector_window.item_widget = item_widget
+
+        width = int(sqrt(len(items)))
+        widget_holder = Frame(item_selector_window)
+        widget = Label(widget_holder, text="Search:")
+        widget.grid(row=0, column=3, padx=3)
+        selector_search_string = StringVar()
+        selector_search_string.trace("w", lambda name, index, mode, sv=selector_search_string: selector_search(sv))
+        widget = Entry(widget_holder, width=12, textvariable=selector_search_string)
+        item_selector_window.search_entry = widget
+        widget.bind("<Escape>", lambda event: event.widget.delete(0,END))
+        widget.bind("<Return>", lambda event: select_item_search())
+        widget.grid(row=0, column=4, sticky=E)
+        widget_holder.grid()
+
+        items_holder = Frame(item_selector_window)
+        items_and_questionmark = items[:] + [['questionmark',None]]
+        for index, item in enumerate(items_and_questionmark):
+            widget = Label(items_holder)
+            widget.item = int(item[0]) if item[0] != 'questionmark' else 'Any'
+            widget.img = get_image(id_to_image(str(item[0])))
+            widget.configure(image=widget.img)
+            widget.bind("<Button-1>", select_item)
+            widget.grid(row=index/width, column=index%width, padx=0, pady=0, sticky=W)
+            if widget.item in filter_items:
+                widget.grid_remove()
+        items_holder.grid()
+        items_holder.update()
+        items_holder.grid_propagate(False)
+        item_selector_window.search_entry.focus()
+
+def item_selector_reset(item_widget):
+    item_widget.item = 'Any'
+    item_widget.img = get_image(id_to_image('questionmark'))
+    item_widget.text.configure(text="Any Item")
+    item_widget.configure(image=item_widget.img)
+    item_widget.update()
+
 
 if __name__ == "__main__":
 
@@ -597,7 +637,6 @@ if __name__ == "__main__":
         options['hide_items'] = filemenu.hide_items.get()
         options['random_offset'] = filemenu.random_offset.get()
         options['filter_items'] = filter_items
-        options['character'] = selected_character.current()
         options['seeds'] = numSeeds.get()
         with open("options.json", "w") as json_file:
             json.dump(options, json_file, indent=3, sort_keys=True)
@@ -608,10 +647,12 @@ if __name__ == "__main__":
     items = items_info.items()
     items = [i for i in items if int(i[0]) in valid_items]
     items.sort(key=lambda w: w[1]['name'])
+    items_info['Any'] = {'name':'Any Item', 'desc':''}
     filter_window = None
+    item_selector_window = None
 
     main_window = Tk()
-    main_window.wm_title("DM Viewer v0.3.1 for Diversity Mod v0.11")
+    main_window.wm_title("DM Viewer v0.4 for Diversity Mod v0.11")
     main_window.resizable(False,False)
     main_window.protocol("WM_DELETE_WINDOW", save_options)
     main_window.bind_class("Entry", "<Control-a>", lambda e: e.widget.selection_range(0,END))
@@ -620,26 +661,31 @@ if __name__ == "__main__":
     # **** Seed Finding GUI ****
     widget_holder = LabelFrame(main_window, padx=5, pady=5)
     widget = Label(widget_holder,
-                   text="Choose up to 3 items to search for seeds with characters starting those items.\n\n"
+                   text="Choose up to 3 items to search for seeds starting with those items.\n\n"
                    +"Offset indicates which seed # to start searching from so you\n"
                    +"can search for the same items twice without finding repeat seeds",
                    justify=CENTER)
     widget.grid(row=0, column=0, columnspan=3)
     widget = Frame(widget_holder)
-    selected_character = Combobox(widget, state='readonly',
-                                      values=["Isaac", "Magdalene", "Cain", "Judas", "Blue_Baby", "Eve", "Samson",
-                                              "Azazel", "Lazarus", "Eden", "The Lost", "Any Character"])
-    selected_character.current(options['character'])
-    selected_character.pack()
     widget.grid(row=1, column=0, columnspan=3)
+
     desired_items = [None] * 3
+    desired_items = [None]*3
+    items_holder = LabelFrame(widget_holder)
     for index in range(0, len(desired_items)):
-        widget = Frame(widget_holder)
-        desired_items[index] = Combobox(widget, state='readonly',
-                                            values=[item[1]['name'] for item in items] + ["Any"])
-        desired_items[index].current(len(items))
-        desired_items[index].pack()
+        widget = LabelFrame(items_holder)
+        desired_items[index] = Label(widget)
+        desired_items[index].text = Label(widget, text="Any Item")
+        desired_items[index].img = get_image(id_to_image('questionmark'))
+        desired_items[index].item = 'Any'
+        desired_items[index].configure(image=desired_items[index].img)
+        desired_items[index].bind("<Button 1>", lambda event: item_selector(main_window, event.widget))
+        desired_items[index].bind("<Shift-Button 1>", lambda event: item_selector_reset(event.widget))
+
+        desired_items[index].grid(row=0, column=index, pady=5)
+        desired_items[index].text.grid(row=1, column=index, pady=2, padx=5)
         widget.grid(row=2, column=index)
+    items_holder.grid(columnspan=3)
     widget_holder.grid(pady=10, padx=10)
 
     # Number of seeds label/entry/button
@@ -674,33 +720,27 @@ if __name__ == "__main__":
 
     # **** Seed Displaying GUI ****
     widget_holder = LabelFrame(main_window, padx=5, pady=5)
-    widget = Label(widget_holder, justify=CENTER,
-                   text='Input a seed to display the characters and their respective items.\n'\
-                   +'Trailing spaces are ignored.')
-    widget.pack()
+    Label(widget_holder, justify=CENTER,
+                   text='Input a seed to display the items on that seed.\n'\
+                   +'Trailing spaces are ignored.').pack()
 
     seed_to_display = StringVar()
     widget = Entry(widget_holder, justify=CENTER, font="font 32 bold", width=15, textvariable=seed_to_display)
     widget.bind("<Return>", lambda event: show_seeds())
     widget.pack()
 
-    widget = Button(widget_holder, text="Show Seed", command=show_seeds)
-    widget.pack()
+    Button(widget_holder, text="Show Seed", command=show_seeds).pack()
     widget_holder.grid(pady=10)
+
 
     # **** Menu Bar ****
     menu = Menu(main_window)
-    filemenu = Menu(menu, tearoff=0)
     main_window.config(menu=menu)
-
-    filemenu.hide_items = BooleanVar()
+    filemenu = Menu(menu, tearoff=0)
+    filemenu.hide_items = BooleanVar(value=options['hide_items'])
     filemenu.add_checkbutton(label="Hide Items", variable=filemenu.hide_items)
-    filemenu.hide_items.set(options['hide_items'])
-
-    filemenu.random_offset = BooleanVar()
-    filemenu.add_checkbutton(label="Random Offset", command=toggle_random_offset, variable=filemenu.random_offset)
-    filemenu.random_offset.set(random_offset)
-
+    filemenu.random_offset = BooleanVar(value=random_offset)
+    filemenu.add_checkbutton(label="Random Seeds", command=toggle_random_offset, variable=filemenu.random_offset)
     filemenu.add_command(label="Edit Filter...", command=lambda : filter_editor(main_window))
     filemenu.add_command(label="Set Filter Dump Location...", command=lambda : filter_dump_set())
     menu.add_cascade(label="Settings", menu=filemenu)

@@ -4,7 +4,7 @@ import shutil
 import py2exe
 from distutils.core import setup
 
-version = "0.3.1"
+version = "0.4"
 install_name = 'DiversityViewer-' + version
 
 if os.path.isdir('target/'):
