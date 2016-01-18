@@ -1,8 +1,16 @@
+# This build script requires two non-standard python libraries:
+#
+# You can install both using the pip commands:
+# pip install pillow
+# pip install pyinstaller
+#
+# pyinstaller should be in your system path to work correctly,
+# which it will be in a default python configuration.
+
 import os
-import sys
 import shutil
-import py2exe
-from distutils.core import setup
+import subprocess
+
 
 version = "0.4"
 install_name = 'DiversityViewer-' + version
@@ -11,38 +19,9 @@ if os.path.isdir('target/'):
     shutil.rmtree('target/')
 install_path = 'target/' + install_name + '/'
 
-sys.argv.append('py2exe')
-setup(
-    windows=['DiversitySeeds.py'],
-    options={
-        'py2exe': {
-            'dll_excludes': ['w9xpopen.exe'],
-            'excludes':['_ssl', 'difflib', 'doctest', 'locale', 'optparse', 'pickle',
-                        'calendar', 'unittest', 'pdb','inspect', '_codecs', 'logging',
-                        'PIL.BmpImagePlugin', 'PIL.GifImagePlugin', 'PIL.GimpGradientFile',
-                        'PIL.GimpPaletteFile', 'PIL.JpegImagePlugin', 'PIL.PpmImagePlugin',
-                        'PIL.PaletteFile', 'TiffImagePlugin', 'TiffTags', 'array', 'pyreadline',
-                        'PaletteFile', 'BmpImagePlugin', 'GifImagePlugin', 'GimpGradientFile',
-                        'GimpPaletteFile', 'ImageChops', 'JpegImagePlugin', 'PpmImagePlugin'],
-            'optimize': 2,
-            'bundle_files': 1
-        }
-    },
-    zipfile=None
-)
+subprocess.call(['pyinstaller', '--onefile', '--windowed', 'DiversitySeeds.py'])
 
 shutil.copytree('dist/', install_path)
-for root, dirs, files in os.walk(install_path + 'tcl/tcl8.5/', topdown=False):
-    for name in files:
-        if name not in ['auto.tcl', 'init.tcl', 'tclIndex']:
-            os.remove(os.path.join(root, name))
-    for name in dirs:
-        os.rmdir(os.path.join(root,name))
-shutil.rmtree(install_path + 'tcl/tk8.5/demos')
-shutil.rmtree(install_path + 'tcl/tk8.5/images')
-shutil.rmtree(install_path + 'tcl/tk8.5/msgs')
-
-shutil.copytree('characters/', install_path + 'characters/')
 shutil.copytree('collectibles/', install_path + 'collectibles/')
 shutil.copy('README.md', install_path + "/README.txt")
 shutil.copy('items.txt', install_path + "/items.txt")

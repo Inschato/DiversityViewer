@@ -1,7 +1,7 @@
 {
-   "filter_dump_path": "",
+   "filter_dump_path": "", 
    "filter_items": [], 
-   "hide_items": true,
-   "random_offset": true,
-   "seeds": "10",
+   "hide_items": true, 
+   "random_offset": true, 
+   "seeds": "10"
 }
