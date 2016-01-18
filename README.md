@@ -5,7 +5,7 @@ Created by Inschato, with thanks to DuneAught, Sillypears, and Zamiel.
 
 For use with the Diversity Mod (v2.0) by Zamiel, InvaderTim, and DuneAught
 
-Which can be found at: https://github.com/duneaught/diversitymod
+Which can be found at: https://github.com/Zamiell/diversitymod
 
 
 Feature List
