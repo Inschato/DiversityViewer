@@ -6,7 +6,7 @@ https://github.com/Hyphen-ated/RebirthItemTracker/
 Borrowed code copyright (c) 2015, Brett824 and Hyphen-ated
 All rights reserved.
 
-New code copyright (c) 2015, Inschato
+New code copyright (c) 2016, Inschato
 
 Images copyright (c) 2014, Nicalis, Inc.
 
@@ -29,9 +29,9 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 '''
 
-from Tkinter import *
-import tkFileDialog
-import tkMessageBox
+from tkinter import *
+from tkinter import filedialog as tkFileDialog
+from tkinter import messagebox as tkMessageBox
 import json
 from os import sep
 from random import shuffle, choice, seed, randint
@@ -91,7 +91,8 @@ class SeedFind:
             self.items_info = json.load(f)
 
     def get_item_list(self, rng_seed):
-        seed(crc32(str(rng_seed)))
+        rng_seed = str(rng_seed)
+        seed(crc32(bytes(rng_seed, 'UTF-8')))
         itemIDs = valid_items[:]
         shuffle(itemIDs)
         return itemIDs[0:3]
@@ -180,6 +181,7 @@ class SeedsDisplay:
 
         # Initialize the window
         self.window = Toplevel(parent) if parent else Tk()
+        self.window.geometry("+%d+%d" % (parent.winfo_rootx() + 50, parent.winfo_rooty() + 50))
         self.window.configure(background="#191919")
         self.window.title("Seed Viewer")
         self.window.resizable(0, 1)
@@ -483,6 +485,7 @@ def filter_editor(parent):
     global filter_window
     if not filter_window:
         filter_window = Toplevel(parent)
+        filter_window.iconify()
         filter_window.configure(background="#191919")
         filter_window.title("Filtered Items")
         filter_window.resizable(0, 0)
@@ -515,11 +518,13 @@ def filter_editor(parent):
             widget.img = get_image(id_to_image(str(item[0])))
             widget.configure(image=widget.img)
             widget.bind("<Button-1>", filter_toggle)
-            widget.grid(row=index/width, column=index%width, padx=0, pady=0, sticky=W)
+            widget.grid(row=int(index/width), column=index%width, padx=0, pady=0, sticky=W)
         items_holder.grid()
         items_holder.update()
         items_holder.grid_propagate(False)
         filter_search_entry.focus()
+        filter_window.deiconify()
+        filter_window.geometry("+%d+%d" % (parent.winfo_rootx() + 50, parent.winfo_rooty() + 50))
 
 # Where item_widget is the item label widget being selected for
 def item_selector(parent, item_widget):
@@ -580,11 +585,13 @@ def item_selector(parent, item_widget):
         if item_selector_window:
             item_selector_window.destroy()
         item_selector_window = Toplevel(parent)
+        item_selector_window.iconify()
         item_selector_window.title("Select an Item")
         item_selector_window.resizable(False, False)
         item_selector_window.protocol("WM_DELETE_WINDOW", destroy_window)
         item_selector_window.tk.call('wm', 'iconphoto', item_selector_window._w, ImageTk.PhotoImage(Image.open('collectibles/questionmark.png')))
         item_selector_window.item_widget = item_widget
+
 
         width = int(sqrt(len(items)))
         widget_holder = Frame(item_selector_window)
@@ -607,13 +614,15 @@ def item_selector(parent, item_widget):
             widget.img = get_image(id_to_image(str(item[0])))
             widget.configure(image=widget.img)
             widget.bind("<Button-1>", select_item)
-            widget.grid(row=index/width, column=index%width, padx=0, pady=0, sticky=W)
+            widget.grid(row=int(index/width), column=index%width, padx=0, pady=0, sticky=W)
             if widget.item in filter_items:
                 widget.grid_remove()
         items_holder.grid()
         items_holder.update()
         items_holder.grid_propagate(False)
         item_selector_window.search_entry.focus()
+        item_selector_window.deiconify()
+        item_selector_window.geometry("+%d+%d" % (parent.winfo_rootx() + 50, parent.winfo_rooty() + 50))
 
 def item_selector_reset(item_widget):
     item_widget.item = 'Any'
@@ -649,7 +658,7 @@ if __name__ == "__main__":
     item_selector_window = None
 
     main_window = Tk()
-    main_window.wm_title("DM Viewer v0.4 for Diversity Mod v2.0")
+    main_window.wm_title("DM Viewer v0.5 for Diversity Mod v3.2.0")
     main_window.resizable(False,False)
     main_window.protocol("WM_DELETE_WINDOW", save_options)
     main_window.bind_class("Entry", "<Control-a>", lambda e: e.widget.selection_range(0,END))

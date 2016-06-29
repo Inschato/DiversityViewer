@@ -12,7 +12,7 @@ import shutil
 import subprocess
 
 
-version = "0.4"
+version = "0.5"
 install_name = 'DiversityViewer-' + version
 
 if os.path.isdir('target/'):

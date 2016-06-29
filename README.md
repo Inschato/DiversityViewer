@@ -1,11 +1,11 @@
-Diversity Mod Seed Viewer v0.4
+Diversity Mod Seed Viewer v0.5
 =========================
 Created by Inschato, with thanks to DuneAught, Sillypears, and Zamiel.
 
 
-For use with the Diversity Mod (v2.0) by Zamiel, InvaderTim, and DuneAught
+For use with the Diversity Mod (v3.2.0) maintained by Zamiel
 
-Which can be found at: https://github.com/Zamiell/diversitymod
+Which can be found at: https://github.com/Zamiell/isaac-racing-mods
 
 
 Feature List
